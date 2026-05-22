@@ -920,9 +920,76 @@ def suggest_output_name(new_curr: str) -> str:
     return f"pengendali_digital_on_mingguan_{d[3].lower()}_{d[0]}_{d[2]}.html"
 
 
+def find_latest_output_html(folder: Path) -> Path | None:
+    """Cari file output terbaru `pengendali_digital_on_mingguan_*.html` by mtime."""
+    cands = list(folder.glob("pengendali_digital_on_mingguan_*.html"))
+    if not cands:
+        return None
+    cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return cands[0]
+
+
+def find_matching_report(folder: Path, new_curr: str) -> Path | None:
+    """Cari report markdown matching new_curr date."""
+    d = parse_date(new_curr)
+    if not d:
+        return None
+    name = f"_REPORT_{d[3].lower()}_{d[0]}_{d[2]}.md"
+    p = folder / name
+    return p if p.exists() else None
+
+
+def build_validation_dict(baseline, plan, ver, new_curr, pdf_path, out_path, report_path):
+    """Build structured validation summary for JSON output."""
+    items_naik = [(k, it, it["m"] - it["f"]) for k, it in ver["items"].items() if it["m"] - it["f"] > 0]
+    items_naik.sort(key=lambda x: -x[2])
+    items_real = [(k, it) for k, it in ver["items"].items() if it["m"] > 0]
+    items_real.sort(key=lambda x: -x[1]["m"])
+
+    sisa_per_program = []
+    for pk, p in ver["progs"].items():
+        sisa = p["p"] - p["m"]
+        sisa_per_program.append(dict(
+            kode=pk, nama=plan["prog"][pk]["nama"],
+            pagu=p["p"], realisasi=p["m"], sisa=sisa,
+            pct_realisasi=round(p["m"] / p["p"] * 100, 2) if p["p"] else 0.0,
+            pct_sisa=round(sisa / p["p"] * 100, 2) if p["p"] else 0.0,
+        ))
+
+    return dict(
+        timestamp=datetime.now().isoformat(timespec="seconds"),
+        pdf_file=pdf_path.name,
+        baseline_date=baseline["curr_date"],
+        new_date=new_curr,
+        bulan_transition=plan["bulan_transition"],
+        pdf_bulan=plan["pdf_bulan"],
+        total_pagu=PAGU_TOTAL,
+        total_f=ver["total_f"],
+        total_m=ver["total_m"],
+        delta_total=ver["total_m"] - ver["total_f"],
+        pct_pagu=round(ver["total_m"] / PAGU_TOTAL * 100, 2),
+        pct_pagu_prev=round(ver["total_f"] / PAGU_TOTAL * 100, 2),
+        cross_check=dict(e1=ver["e1"], e2=ver["e2"], e3=ver["e3"], e4_match=ver["e4_match"]),
+        all_checks_pass=(ver["e1"] == 0 and ver["e2"] == 0 and ver["e3"] == 0 and ver["e4_match"]),
+        sisa_per_program=sisa_per_program,
+        top_items_realisasi=[
+            dict(kode=k, nama=it["n"], pagu=it["p"], m=it["m"],
+                 pct_pagu=round(it["m"] / it["p"] * 100, 2) if it["p"] else 0.0)
+            for k, it in items_real[:3]
+        ],
+        top_items_delta=[
+            dict(kode=k, nama=it["n"], f=it["f"], m=it["m"], delta=d,
+                 pct_pagu=round(it["m"] / it["p"] * 100, 2) if it["p"] else 0.0)
+            for k, it, d in items_naik[:3]
+        ],
+        output_html=out_path.name if out_path else None,
+        output_report=report_path.name if report_path else None,
+    )
+
+
 def main():
     ap = argparse.ArgumentParser(description="PDO Update — Smart Wizard")
-    ap.add_argument("pdf", help="Path PDF SPJ Fungsional baru")
+    ap.add_argument("pdf", nargs="?", help="Path PDF SPJ Fungsional baru (opsional kalau --deploy-only)")
     ap.add_argument("--baseline", help="Override path baseline HTML (auto-detect by default)")
     ap.add_argument("--output", help="Override path output HTML")
     ap.add_argument("--no-deploy", action="store_true", help="Skip push ke GitHub Pages")
@@ -930,8 +997,45 @@ def main():
     ap.add_argument("--c11p-rolling", action="store_true", help="Pakai c11p=c11n_lama (literal rolling)")
     ap.add_argument("--repo", default=DEFAULT_REPO, help=f"Nama repo GH Pages (default: {DEFAULT_REPO})")
     ap.add_argument("--yes", "-y", action="store_true", help="Auto-confirm semua prompt")
+    ap.add_argument("--validation-json", help="Emit struct validation summary ke file JSON (untuk dipakai skill Claude Code)")
+    ap.add_argument("--deploy-only", action="store_true",
+                    help="Skip generate, langsung deploy file output terbaru ke GitHub Pages")
     args = ap.parse_args()
 
+    # ─── DEPLOY-ONLY MODE ──────────────────────────────────
+    if args.deploy_only:
+        banner("[deploy-only] Push file output terbaru ke GitHub Pages")
+        out_path = find_latest_output_html(PROJ)
+        if not out_path:
+            print(f"❌ Tidak ada file 'pengendali_digital_on_mingguan_*.html' di {PROJ}")
+            return 1
+        html = out_path.read_text(encoding="utf-8")
+        m = re.search(r"const CURR_DATE\s*=\s*'([^']+)'", html)
+        if not m:
+            print(f"❌ CURR_DATE tidak ditemukan di {out_path.name}")
+            return 1
+        new_curr = m.group(1)
+        report_path = find_matching_report(PROJ, new_curr)
+        if not report_path:
+            print(f"⚠️ Report tidak ditemukan untuk {new_curr}, lanjut tanpa report (placeholder kosong).")
+            # Buat report placeholder agar deploy_pages tidak crash
+            tmp_report = PROJ / f"_REPORT_placeholder.md"
+            tmp_report.write_text(f"# Update {new_curr}\n\n_Report otomatis tidak tersedia._\n", encoding="utf-8")
+            report_path = tmp_report
+        print(f"  HTML: {out_path.name}")
+        print(f"  Report: {report_path.name}")
+        print(f"  Tanggal: {new_curr}")
+        pages_url = deploy_pages(out_path, report_path, {}, {}, new_curr, args.repo, auto_confirm=args.yes)
+        if pages_url:
+            print(f"\n  ✅ URL Pages: {pages_url}")
+        else:
+            print(f"  ⚠️ Deploy tidak selesai.")
+        return 0
+
+    # PDF wajib untuk mode normal
+    if not args.pdf:
+        print("❌ Argumen PDF wajib (kecuali pakai --deploy-only).")
+        return 1
     pdf_path = Path(args.pdf)
     if not pdf_path.is_absolute():
         pdf_path = PROJ / pdf_path
@@ -1030,6 +1134,14 @@ def main():
 
     if args.dry_run:
         print(f"\n  [DRY-RUN] File TIDAK ditulis. Output size: {len(new_html):,} chars".replace(",", "."))
+        # Tetap emit JSON kalau diminta (validation only mode)
+        if args.validation_json:
+            vdict = build_validation_dict(baseline, plan, ver, new_curr, pdf_path, None, None)
+            vpath = Path(args.validation_json)
+            if not vpath.is_absolute():
+                vpath = PROJ / vpath
+            vpath.write_text(json.dumps(vdict, indent=2, ensure_ascii=False), encoding="utf-8")
+            print(f"  ✅ Validation JSON: {vpath.name}")
         return 0
 
     # Tulis file output
@@ -1043,6 +1155,15 @@ def main():
     report_path = PROJ / report_name
     report_path.write_text(report_md, encoding="utf-8")
     print(f"  ✅ Report: {report_path.name}")
+
+    # Emit validation JSON (untuk skill Claude Code)
+    if args.validation_json:
+        vdict = build_validation_dict(baseline, plan, ver, new_curr, pdf_path, out_path, report_path)
+        vpath = Path(args.validation_json)
+        if not vpath.is_absolute():
+            vpath = PROJ / vpath
+        vpath.write_text(json.dumps(vdict, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"  ✅ Validation JSON: {vpath.name}")
 
     # ─── Step 5: deploy ───────────────────────────────
     if args.no_deploy:
