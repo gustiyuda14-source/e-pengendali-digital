@@ -19,11 +19,14 @@ Data bersumber dari **SPJ Fungsional SIPD** (format PDF). Update dilakukan setia
 
 | File | Keterangan |
 |------|-----------|
-| `pengendali_digital_on_redesign_april_24_2026.html` | Versi redesign dark premium (baseline) |
-| `pengendali_digital_on_gu5_mei_1_2026.html` | Update GU 5 per 1 Mei 2026 (terkini) |
+| `pengendali_digital_on_redesign_april_24_2026.html` | Versi redesign dark premium (baseline awal) |
+| `pengendali_digital_on_gu5_mei_1_2026.html` | Update GU 5 per 1 Mei 2026 |
+| `pengendali_digital_on_mingguan_mei_22_2026.html` | Update per 22 Mei 2026 (terkini) |
+| `pdo_update.py` | Smart wizard CLI — otomatisasi update mingguan (lihat section bawah) |
 | `CLAUDE.md` | File ini — panduan kerja |
 
 **Konvensi penamaan file baru:** `pengendali_digital_on_[deskripsi]_[bulan]_[tgl]_[tahun].html`
+(Script `pdo_update.py` otomatis pakai `mingguan_<bulan>_<tgl>_<tahun>.html`.)
 
 ---
 
@@ -216,14 +219,65 @@ Font: **Inter** (UI) + **JetBrains Mono** (angka/kode) via Google Fonts CDN.
 
 ---
 
-## Snapshot Terkini — GU 5 per 1 Mei 2026
+## Workflow Otomasi (script `pdo_update.py`)
 
-| Program | Pagu | Realisasi | % |
-|---------|------|-----------|---|
-| 6.01 Penunjang | 20.320.297.344 | 6.886.095.954 | 33.89% |
-| 6.02 Pengawasan | 3.317.241.000 | 904.023.316 | 27.25% |
-| 6.03 Kebijakan | 697.797.000 | 123.190.000 | 17.66% |
-| **TOTAL** | **24.335.335.344** | **7.913.309.270** | **32.52%** |
+**Recall sederhana**: drop PDF SPJ ke folder, jalankan satu perintah:
+```bash
+py pdo_update.py "Fungsional Per <tgl>_<bln>_<thn>.pdf"
+```
+
+Script auto: detect baseline HTML terbaru → extract PDF → deteksi bulan transition → susun RAW_DATA pakai logic rolling → generate HTML + diff report `.md` → commit & push ke GitHub Pages.
+
+**Dashboard live:** https://gustiyuda14-source.github.io/pdo-realisasi-2026/
+**Repo:** https://github.com/gustiyuda14-source/pdo-realisasi-2026 (public)
+
+### Edge case yang sudah ter-handle
+- **Bulan transition** (mis. April→Mei): Kol.10 PDF SUDAH inklusif bulan terakhir → `c10_baru = c10_PDF`, `c11p_baru = 0` (semantik bulan baru, default `--c11p rebase`).
+- **Rekening LS Gaji / LS BJ**: Include sebagai detail dengan `c10/c11n += Kol.4-6 + Kol.7-9`. Total detail = Kol.13 PDF (semua jalur realisasi). Label modal sesuaikan ke "Kol.13 SPJ".
+- **Item dengan kenaikan tapi detail flat** (kasus Gaji ASN — penyesuaian pencatatan periode lalu): Modal otomatis menampilkan banner amber "ℹ️ Catatan: penyesuaian periode lalu".
+- **Kode rekening baru**: Otomatis di-include dari PDF (ATURAN 1).
+- **Newline di nama rekening** (PDF wrap di cell): Otomatis di-normalize dengan `re.sub(r'\s+', ' ')`.
+
+### Flag override
+```
+--baseline <path>     Pilih baseline HTML manual (default: auto-detect by CURR_DATE terbaru)
+--output <path>       Override nama file output
+--no-deploy           Skip push GitHub Pages (untuk uji lokal)
+--dry-run             Generate ke memory saja, tidak tulis file
+--c11p-rolling        Pakai literal rolling (c11p=c11n_lama), bukan rebase=0
+--repo <name>         Override nama repo GitHub Pages
+--yes / -y            Auto-confirm semua prompt
+```
+
+### Cross-check otomatis (script print di terminal + tulis di report)
+1. `prog.m = Σ subkeg.m` per program
+2. `subkeg.m = Σ item.m` per sub-keg
+3. `item.delta = Σ detail.delta` untuk item non-gaji
+4. `total m = Kol.13 PDF "BELANJA DAERAH"` (match exact)
+
+Jika ada mismatch, jangan deploy — investigasi RAW_DATA/PDF.
+
+### Disable script: kembali ke manual
+Cukup edit file HTML manual seperti sebelumnya. Script tidak punya side-effect di luar folder project + Git remote.
+
+### Files yang dihasilkan tiap run
+- `pengendali_digital_on_mingguan_<bulan>_<tgl>_<tahun>.html` — file dashboard baru
+- `_REPORT_<bulan>_<tgl>_<tahun>.md` — diff report (gitignored di `_*.md`, di-commit sebagai `reports/<iso>.md`)
+- `archive/<iso_date>.html` — snapshot di repo Git
+- `reports/<iso_date>.md` — report di repo Git
+- `index.html` (root) — redirect ke snapshot terkini
+- `archive/index.html` — listing history mingguan
+
+---
+
+## Snapshot Terkini — Update per 22 Mei 2026
+
+| Program | Pagu | Realisasi 1 Mei | Realisasi 22 Mei | Δ | % (22 Mei) |
+|---------|------|-----------------|------------------|---|------------|
+| 6.01 Penunjang | 20.320.297.344 | 6.886.095.954 | 7.780.768.435 | +894.672.481 | 38.29% |
+| 6.02 Pengawasan | 3.317.241.000 | 904.023.316 | 997.783.316 | +93.760.000 | 30.08% |
+| 6.03 Kebijakan | 697.797.000 | 123.190.000 | 170.095.000 | +46.905.000 | 24.38% |
+| **TOTAL** | **24.335.335.344** | **7.913.309.270** | **8.948.646.751** | **+1.035.337.481** | **36.77%** |
 
 ---
 

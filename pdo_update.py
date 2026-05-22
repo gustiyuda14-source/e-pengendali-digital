@@ -855,6 +855,18 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
                 return None
         run(["git", "init"], cwd=PROJ)
         run(["git", "branch", "-M", "main"], cwd=PROJ)
+        # Ensure local git identity exists (avoid commit failure)
+        try:
+            name = run(["git", "config", "--get", "user.name"], cwd=PROJ, check=False).stdout.strip()
+            email = run(["git", "config", "--get", "user.email"], cwd=PROJ, check=False).stdout.strip()
+        except Exception:
+            name, email = "", ""
+        if not name:
+            run(["git", "config", "--local", "user.name", "gustiyuda14-source"], cwd=PROJ)
+        if not email:
+            # Use GitHub no-reply (privacy-friendly)
+            run(["git", "config", "--local", "user.email",
+                 "273990713+gustiyuda14-source@users.noreply.github.com"], cwd=PROJ)
         run(["git", "add",
              "index.html", ".nojekyll", ".gitignore", "README.md",
              "archive", "reports", "pdo_update.py", "CLAUDE.md"], cwd=PROJ)
