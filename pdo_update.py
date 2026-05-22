@@ -895,10 +895,11 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
         # Subsequent run — commit + push
         run(["git", "add",
              "index.html", "README.md", f"archive/{iso_date}.html",
-             f"reports/{iso_date}.md", "archive/index.html", "pdo_update.py"],
+             f"reports/{iso_date}.md", "archive/index.html", "pdo_update.py", "CLAUDE.md"],
             cwd=PROJ, check=False)
-        result = run(["git", "status", "--porcelain"], cwd=PROJ)
-        if not result.stdout.strip():
+        # Check only STAGED changes (not untracked / unstaged)
+        diff_result = run(["git", "diff", "--cached", "--quiet"], cwd=PROJ, check=False)
+        if diff_result.returncode == 0:
             print("  ⚠️ Tidak ada perubahan untuk di-commit (idempotent — sudah pernah deploy).")
             return f"https://gustiyuda14-source.github.io/{repo_name}/"
         if not auto_confirm:
