@@ -1,0 +1,6 @@
+_*.json
+_*.py
+Fungsional*.pdf
+*.pptx
+*~$*
+__pycache__/
