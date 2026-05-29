@@ -995,7 +995,8 @@ def main():
     ap.add_argument("--output", help="Override path output HTML")
     ap.add_argument("--no-deploy", action="store_true", help="Skip push ke GitHub Pages")
     ap.add_argument("--dry-run", action="store_true", help="Generate ke memory saja, tidak tulis file")
-    ap.add_argument("--c11p-rolling", action="store_true", help="Pakai c11p=c11n_lama (literal rolling)")
+    ap.add_argument("--c11p-rolling", action="store_true", help="[DEPRECATED — kini default] Pakai c11p=c11n_lama (literal rolling)")
+    ap.add_argument("--c11p-rebase", action="store_true", help="Pakai c11p=0 (mode lama; delta detail = c11n penuh). Default sekarang rolling.")
     ap.add_argument("--repo", default=DEFAULT_REPO, help=f"Nama repo GH Pages (default: {DEFAULT_REPO})")
     ap.add_argument("--yes", "-y", action="store_true", help="Auto-confirm semua prompt")
     ap.add_argument("--validation-json", help="Emit struct validation summary ke file JSON (untuk dipakai skill Claude Code)")
@@ -1110,7 +1111,7 @@ def main():
 
     # ─── Step 4: build + generate + verify ────────────
     banner("[4/5] Generate + verify")
-    plan = build_plan(baseline, pdf_data, c11p_mode="rolling" if args.c11p_rolling else "rebase")
+    plan = build_plan(baseline, pdf_data, c11p_mode="rebase" if args.c11p_rebase else "rolling")
     new_html = apply_template(baseline, plan, new_curr)
 
     # PDF total (Kol.13 BELANJA DAERAH from page 1 — sum from all prog items)
