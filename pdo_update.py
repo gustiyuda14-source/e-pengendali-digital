@@ -988,6 +988,21 @@ def build_validation_dict(baseline, plan, ver, new_curr, pdf_path, out_path, rep
     )
 
 
+def build_export_dict(plan: dict, new_curr: str) -> dict:
+    """Export data c11n per rekening untuk e_pengendalian_submit.py."""
+    bulan_nama = plan["pdf_bulan"] or ""
+    bulan_num  = BULAN_FULL_TO_NUM.get(bulan_nama, 0)
+    items_out  = {}
+    for kode, item in plan["item"].items():
+        dets = [
+            dict(kode=d["k"], nama=d["n"], pagu=d["p"], c11n=d["c11n"])
+            for d in item["details"]
+        ]
+        if dets:
+            items_out[kode] = dict(nama=item["nama"], details=dets)
+    return dict(bulan_num=bulan_num, bulan_nama=bulan_nama, new_date=new_curr, items=items_out)
+
+
 def main():
     ap = argparse.ArgumentParser(description="PDO Update — Smart Wizard")
     ap.add_argument("pdf", nargs="?", help="Path PDF SPJ Fungsional baru (opsional kalau --deploy-only)")
@@ -1000,6 +1015,7 @@ def main():
     ap.add_argument("--repo", default=DEFAULT_REPO, help=f"Nama repo GH Pages (default: {DEFAULT_REPO})")
     ap.add_argument("--yes", "-y", action="store_true", help="Auto-confirm semua prompt")
     ap.add_argument("--validation-json", help="Emit struct validation summary ke file JSON (untuk dipakai skill Claude Code)")
+    ap.add_argument("--export-json", help="Export data c11n per rekening untuk e_pengendalian_submit.py")
     ap.add_argument("--deploy-only", action="store_true",
                     help="Skip generate, langsung deploy file output terbaru ke GitHub Pages")
     args = ap.parse_args()
@@ -1166,6 +1182,15 @@ def main():
             vpath = PROJ / vpath
         vpath.write_text(json.dumps(vdict, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"  ✅ Validation JSON: {vpath.name}")
+
+    # Emit export JSON (untuk e_pengendalian_submit.py)
+    if args.export_json:
+        edict = build_export_dict(plan, new_curr)
+        epath = Path(args.export_json)
+        if not epath.is_absolute():
+            epath = PROJ / epath
+        epath.write_text(json.dumps(edict, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"  ✅ Export JSON: {epath.name}")
 
     # ─── Step 5: deploy ───────────────────────────────
     if args.no_deploy:
