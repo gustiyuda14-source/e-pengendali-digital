@@ -2,7 +2,7 @@
 
 Dashboard realisasi anggaran **Inspektorat Pemprov Sulawesi Tenggara TA 2026** — update mingguan dari SPJ Fungsional SIPD.
 
-🌐 **Lihat dashboard:** [https://gustiyuda14-source.github.io/pdo-realisasi-2026/](https://gustiyuda14-source.github.io/pdo-realisasi-2026/)
+🌐 **Lihat dashboard:** [https://gustiyuda14-source.github.io/pdo-realisasi-2026/dashboard.html](https://gustiyuda14-source.github.io/pdo-realisasi-2026/dashboard.html)
 📅 **Snapshot terkini:** 10 Jul 2026
 📂 **Arsip mingguan:** [archive/](archive/)
 

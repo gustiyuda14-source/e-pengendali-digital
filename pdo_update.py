@@ -32,13 +32,18 @@ import os
 import re
 import subprocess
 import sys
+import time
 import io
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-# Force UTF-8 stdout (Windows console)
-if hasattr(sys.stdout, "buffer"):
+# Force UTF-8 stdout (Windows console). Guarded so re-importing this module
+# (e.g. build_site.py does `import pdo_update` while this runs as __main__)
+# doesn't wrap an already-wrapped stdout — a second TextIOWrapper around the
+# same buffer gets garbage-collected and closes the shared buffer underneath
+# the first one, crashing later prints with "I/O operation on closed file".
+if hasattr(sys.stdout, "buffer") and getattr(sys.stdout, "encoding", "").lower() != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 # ─── Constants ──────────────────────────────────────────────
@@ -104,9 +109,10 @@ def js_str(s: str) -> str:
     return s.replace("\\", "\\\\").replace("'", "\\'")
 
 
-def run(cmd: list[str], cwd=None, check=True, capture=True) -> subprocess.CompletedProcess:
-    """Run a subprocess, return CompletedProcess. Raises on check=True failure."""
-    return subprocess.run(cmd, cwd=cwd, check=check, capture_output=capture, text=True, encoding="utf-8")
+def run(cmd: list[str], cwd=None, check=True, capture=True, timeout=60) -> subprocess.CompletedProcess:
+    """Run a subprocess, return CompletedProcess. Raises on check=True failure or timeout."""
+    return subprocess.run(cmd, cwd=cwd, check=check, capture_output=capture, text=True,
+                          encoding="utf-8", timeout=timeout)
 
 
 def ask(prompt: str, default: str = "") -> str:
@@ -125,9 +131,13 @@ def confirm(prompt: str, default: bool = True) -> bool:
     return val in ("y", "yes", "ya")
 
 
+_T_START = time.monotonic()
+
+
 def banner(title: str):
+    elapsed = time.monotonic() - _T_START
     print(f"\n{'─' * 64}")
-    print(f"  {title}")
+    print(f"  {title}  (+{elapsed:.1f}s)")
     print(f"{'─' * 64}")
 
 
@@ -805,41 +815,8 @@ def build_diff_report(baseline: dict, plan: dict, ver: dict, new_curr: str, pdf_
 
 # ─── GitHub Pages Deploy ────────────────────────────────────
 def render_archive_index(snapshots: list[dict], repo_name: str) -> str:
-    """Render archive/index.html — daftar history snapshot."""
-    rows = []
-    for s in snapshots:
-        rows.append(
-            f'<a class="card" href="{s["filename"]}"><div class="dt">{s["date_label"]}</div>'
-            f'<div class="meta">Realisasi: Rp {s["total_m"]} · {s["pct"]}% pagu</div></a>'
-        )
-    return f"""<!DOCTYPE html>
-<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PDO Arsip — Mingguan</title>
-<style>
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:'Inter',system-ui,sans-serif;background:#0F172A;color:#E2E8F0;padding:24px;min-height:100vh}}
-.wrap{{max-width:760px;margin:0 auto}}
-h1{{font-size:20px;font-weight:600;margin-bottom:6px;color:#38BDF8}}
-p.sub{{font-size:12px;color:#94A3B8;margin-bottom:24px}}
-.card{{display:block;background:#1A2540;border:1px solid rgba(148,163,184,0.12);border-radius:12px;padding:14px 18px;margin-bottom:10px;text-decoration:none;color:inherit;transition:background .15s,transform .15s}}
-.card:hover{{background:#202D47;transform:translateY(-1px)}}
-.dt{{font-size:14px;font-weight:600;color:#34D399}}
-.meta{{font-size:11px;color:#94A3B8;margin-top:3px;font-family:'JetBrains Mono',monospace}}
-.back{{display:inline-block;margin-top:18px;font-size:11px;color:#38BDF8;text-decoration:none}}
-.back:hover{{text-decoration:underline}}
-</style></head><body><div class="wrap">
-<h1>📊 PDO — Arsip Mingguan</h1>
-<p class="sub">Inspektorat Pemprov Sulawesi Tenggara · TA 2026 · {len(snapshots)} snapshot</p>
-{''.join(rows)}
-<a class="back" href="../">← Kembali ke versi terbaru</a>
-</div></body></html>"""
-
-
-def render_root_redirect(latest_filename: str) -> str:
-    """Render redirect index.html ke versi terbaru."""
-    return f"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url=archive/{latest_filename}"><title>Redirecting...</title></head>
-<body>Redirecting to <a href="archive/{latest_filename}">latest snapshot</a>...</body></html>"""
+    """Render archive/index.html — redirect ke riwayat.html."""
+    return '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=../riwayat.html"></head></html>'
 
 
 def render_readme(repo_name: str, latest_date: str) -> str:
@@ -848,7 +825,7 @@ def render_readme(repo_name: str, latest_date: str) -> str:
 
 Dashboard realisasi anggaran **Inspektorat Pemprov Sulawesi Tenggara TA 2026** — update mingguan dari SPJ Fungsional SIPD.
 
-🌐 **Lihat dashboard:** [https://gustiyuda14-source.github.io/{repo_name}/](https://gustiyuda14-source.github.io/{repo_name}/)
+🌐 **Lihat dashboard:** [https://gustiyuda14-source.github.io/{repo_name}/dashboard.html](https://gustiyuda14-source.github.io/{repo_name}/dashboard.html)
 📅 **Snapshot terkini:** {latest_date}
 📂 **Arsip mingguan:** [archive/](archive/)
 
@@ -913,9 +890,12 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
         return None
 
     latest = snapshots[0]
-    # Write root index.html (redirect)
-    (PROJ / "index.html").write_text(render_root_redirect(latest["filename"]), encoding="utf-8")
-    # Write archive index
+    # Build data files (history.json, series.json) via build_site
+    import build_site
+    print("\n  [build_site] Re-generating JSON datasets...")
+    build_site.build_all(PROJ)
+    
+    # Write archive index (redirect)
     (archive_dir / "index.html").write_text(render_archive_index(snapshots, repo_name), encoding="utf-8")
     # Write README
     (PROJ / "README.md").write_text(render_readme(repo_name, latest["date_label"]), encoding="utf-8")
@@ -948,7 +928,8 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
             run(["git", "config", "--local", "user.email",
                  "273990713+gustiyuda14-source@users.noreply.github.com"], cwd=PROJ)
         run(["git", "add",
-             "index.html", ".nojekyll", ".gitignore", "README.md",
+             "index.html", "dashboard.html", "riwayat.html", "rekening.html", "assets", "data", "build_site.py",
+             ".nojekyll", ".gitignore", "README.md",
              "archive", "reports", "pdo_update.py", "CLAUDE.md"], cwd=PROJ)
         run(["git", "commit", "-m", f"Initial PDO dashboard — {new_curr}"], cwd=PROJ)
         # Create repo via gh
@@ -974,7 +955,8 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
     else:
         # Subsequent run — commit + push
         run(["git", "add",
-             "index.html", "README.md", f"archive/{iso_date}.html",
+             "index.html", "dashboard.html", "riwayat.html", "rekening.html", "assets", "data", "build_site.py",
+             "README.md", f"archive/{iso_date}.html",
              f"reports/{iso_date}.md", "archive/index.html", "pdo_update.py", "CLAUDE.md"],
             cwd=PROJ, check=False)
         # Check only STAGED changes (not untracked / unstaged)
@@ -1132,6 +1114,7 @@ def main():
             print(f"\n  ✅ URL Pages: {pages_url}")
         else:
             print(f"  ⚠️ Deploy tidak selesai.")
+        print(f"  ⏱ Total waktu: {time.monotonic() - _T_START:.1f}s")
         return 0
 
     # PDF wajib untuk mode normal
@@ -1287,6 +1270,7 @@ def main():
     # ─── Step 5: deploy ───────────────────────────────
     if args.no_deploy:
         print(f"\n  [skip deploy] flag --no-deploy aktif.")
+        print(f"  ⏱ Total waktu: {time.monotonic() - _T_START:.1f}s")
         return 0
 
     banner("[5/5] Deploy GitHub Pages")
@@ -1298,6 +1282,7 @@ def main():
     else:
         print(f"  ⚠️ Deploy tidak selesai.")
 
+    print(f"  ⏱ Total waktu: {time.monotonic() - _T_START:.1f}s")
     return 0
 
 

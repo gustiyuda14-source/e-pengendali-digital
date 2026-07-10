@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Riwayat Laporan — Pengendali Digital ON</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/style.css">
+  <style>
+    .markdown-content { font-size: 12px; line-height: 1.6; }
+    .markdown-content h1 { font-size: 16px; margin-bottom: 12px; }
+    .markdown-content h2 { font-size: 14px; margin-top: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+    .markdown-content p { margin-bottom: 8px; }
+    .markdown-content ul { margin-left: 20px; margin-bottom: 12px; }
+    .markdown-content table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11px; }
+    .markdown-content th, .markdown-content td { padding: 6px 8px; border: 1px solid var(--border); }
+    .markdown-content th { background: var(--bg); text-align: left; }
+    .markdown-content blockquote { border-left: 4px solid var(--border-2); padding-left: 12px; color: var(--ink-2); margin-bottom: 12px; }
+    .markdown-content code { font-family: var(--mono); background: var(--bg); padding: 2px 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="shell-header"></div>
+    
+    <div id="main-content" style="display:none;">
+      <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+        <h2 style="font-size: 18px; font-weight: 600; color: var(--ink);">Riwayat Realisasi & Laporan</h2>
+        <p style="font-size: 12px; color: var(--ink-2); margin-top: 4px;">Trend pertumbuhan realisasi dan arsip laporan mingguan.</p>
+      </div>
+
+      <!-- Trend Chart -->
+      <div class="card p-0" style="padding:0; overflow:hidden">
+        <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--bg)">
+          <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--ink-2);">📈 Trend Pertumbuhan Total (Rp)</h3>
+        </div>
+        <div style="padding:20px; height:240px" id="chart-trend"></div>
+      </div>
+
+      <div class="card p-0" style="padding:0; overflow:hidden">
+        <div style="padding:16px 20px; border-bottom:1px solid var(--border); background:var(--bg)">
+          <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--ink-2);">📊 Mutasi per Minggu (Rp)</h3>
+        </div>
+        <div style="padding:20px; height:180px" id="chart-mutasi"></div>
+      </div>
+
+      <!-- History List -->
+      <div id="history-list" style="margin-top:24px;"></div>
+    </div>
+    
+    <div id="loading" style="padding:40px; text-align:center"><div class="shimmer" style="width:200px; height:20px; border-radius:10px"></div></div>
+    <div id="error-container"></div>
+    <div id="shell-footer"></div>
+  </div>
+
+  <script src="./assets/app.js"></script>
+  <script src="./assets/charts.js"></script>
+  <script src="./assets/riwayat.js"></script>
+</body>
+</html>

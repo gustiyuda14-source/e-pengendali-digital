@@ -87,8 +87,8 @@ Item tanpa kenaikan atau tanpa detail rekening = TIDAK clickable.
 ## Alur Update Mingguan (Workflow Baku)
 
 ```
-1. User upload PDF SPJ baru  →  file masuk ke uploads/
-2. cp uploads/xxx.pdf outputs/spj_new.pdf
+1. User upload PDF SPJ baru  →  file masuk ke pdf_fungsional/ (satu folder untuk semua PDF Fungsional)
+2. python3 pdo_update.py "pdf_fungsional/<nama_pdf>"
 3. Run pdfplumber → extract c10, c11n, total per rekening + total per kegiatan
 4. Baca HTML file terakhir → ambil c11n lama = c11p baru
 5. Hitung:
@@ -228,17 +228,24 @@ Drop PDF ke folder, lalu di dalam Claude Code ketik:
 ```
 /pdo-update
 ```
-Skill akan: pilih PDF terbaru → run script `--no-deploy` → tampilkan validation summary di chat (total, sisa per program, 4 cross-check, top 3 item realisasi, top 3 kenaikan, flag bulan transition) → AskUserQuestion konfirmasi → push ke GitHub Pages kalau OK. Ada gate "review before deploy" supaya tidak ada data salah ter-publish.
+Skill akan: pilih PDF terbaru → run script `--no-deploy` → tampilkan validation summary di chat (total, sisa per program, 5 cross-check e1-e5, top 3 item realisasi, top 3 kenaikan, flag bulan transition) → AskUserQuestion konfirmasi deploy → push ke GitHub Pages kalau OK → (opsional) dry-run + cross-check ganda + AskUserQuestion konfirmasi submit ke e-Pengendalian. Ada gate "review before deploy/submit" supaya tidak ada data salah ter-publish atau terkirim.
 
-Lokasi definisi skill: `C:\Users\My ASUS\.claude\skills\pdo-update\SKILL.md`.
+Lokasi definisi skill: `/Users/gustiputuyudawirashana/.claude/skills/pdo-update/SKILL.md`.
 
 ### Cara 2: Terminal langsung
 ```bash
-py pdo_update.py "Fungsional Per <tgl>_<bln>_<thn>.pdf"
+python3 pdo_update.py "Fungsional Per <tgl>_<bln>_<thn>.pdf"
 ```
 Script auto: detect baseline HTML terbaru → extract PDF → deteksi bulan transition → susun RAW_DATA pakai logic rolling → generate HTML + diff report `.md` → prompt deploy → commit & push ke GitHub Pages.
 
 Tambah `-y` untuk skip semua prompt, `--no-deploy` untuk uji lokal, `--deploy-only` untuk push file output terbaru tanpa regenerate.
+
+Untuk submit ke e-Pengendalian (setelah `--export-json` di-generate):
+```bash
+python3 e_pengendalian_submit.py "_submit_data.json" --dry-run   # preview dulu
+python3 e_pengendalian_submit.py "_submit_data.json" -y          # live submit
+```
+Kredensial wajib dari env var `EPENGENDALIAN_EMAIL` / `EPENGENDALIAN_PASS` — tidak ada fallback tersimpan di source.
 
 **Dashboard live:** https://gustiyuda14-source.github.io/pdo-realisasi-2026/
 **Repo:** https://github.com/gustiyuda14-source/pdo-realisasi-2026 (public)
@@ -274,13 +281,14 @@ Jika ada mismatch, jangan deploy — investigasi RAW_DATA/PDF.
 ### Disable script: kembali ke manual
 Cukup edit file HTML manual seperti sebelumnya. Script tidak punya side-effect di luar folder project + Git remote.
 
-### Files yang dihasilkan tiap run
-- `pengendali_digital_on_mingguan_<bulan>_<tgl>_<tahun>.html` — file dashboard baru
-- `_REPORT_<bulan>_<tgl>_<tahun>.md` — diff report (gitignored di `_*.md`, di-commit sebagai `reports/<iso>.md`)
-- `archive/<iso_date>.html` — snapshot di repo Git
-- `reports/<iso_date>.md` — report di repo Git
-- `index.html` (root) — redirect ke snapshot terkini
-- `archive/index.html` — listing history mingguan
+### Arsitektur Data & Halaman
+1. `archive/YYYY-MM-DD.html`: File snapshot/bukti audit dari SPJ. **READ-ONLY**, jangan pernah di-edit. Dibuat statis oleh pdo_update.py.
+2. `data/history.json` dan `data/series.json`: Data hasil agregasi dari seluruh snapshot. Digenerate oleh `build_site.py`.
+3. Aplikasi bersifat **Multi-halaman** (Vanilla JS & CSS tanpa framework eksternal):
+   - `index.html`: Beranda & KPI Utama.
+   - `dashboard.html`: Dashboard Mingguan & Tabel Realisasi 52 Item.
+   - `riwayat.html`: Arsip Snapshot & Trend Pertumbuhan.
+   - `rekening.html`: Pencarian dan pelacakan historis rekening SPJ.
 
 ---
 

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Mingguan — Pengendali Digital ON</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+  <div class="container">
+    <div id="shell-header"></div>
+    
+    <div id="main-content" style="display:none;">
+      <!-- Header -->
+      <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+        <h2 style="font-size: 18px; font-weight: 600; color: var(--ink);">Perbandingan Mingguan</h2>
+        <p style="font-size: 12px; color: var(--ink-2); margin-top: 4px;" id="dash-subtitle"></p>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="selisih-banner" id="selisihBanner"></div>
+      
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <div class="card">
+          <div class="card-title" id="progTitle">Program Monitoring</div>
+          <div id="progRealisasi"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Top Kritis / Warning / Aktif (Sub-Keg)</div>
+          <div id="alertsDiv" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+      </div>
+
+      <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="padding: 16px 20px; background: var(--bg); border-bottom: 1px solid var(--border);">
+          <h3 style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--ink-2);">📊 Rekapitulasi 52 Items</h3>
+        </div>
+        
+        <!-- Desktop Table -->
+        <div class="table-responsive pdo-table-wrap">
+          <table class="pdo-table">
+            <thead>
+              <tr>
+                <th style="width:130px">Kode</th>
+                <th>Uraian</th>
+                <th class="r" style="width:105px">Pagu (Rp)</th>
+                <th class="r" style="width:105px">Minggu Lalu</th>
+                <th class="r" style="width:105px" id="th-curr">Terkini</th>
+                <th class="r" style="width:100px; color:var(--lime-deep)">Selisih Minggu</th>
+                <th class="r" style="width:100px">Sisa Pagu</th>
+                <th style="width:70px">% Real.</th>
+                <th style="width:80px">Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Accordion -->
+        <div class="mobile-accordion" id="accordionBody"></div>
+      </div>
+    </div>
+    
+    <div id="loading" style="padding:40px; text-align:center"><div class="shimmer" style="width:200px; height:20px; border-radius:10px"></div></div>
+    <div id="error-container"></div>
+    <div id="shell-footer"></div>
+  </div>
+
+  <!-- Modal Detail -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-hdr">
+        <h2 style="font-size:14px; font-weight:600; color:var(--ink);">🔍 Detail Rincian Rekening</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="./assets/app.js"></script>
+  <script src="./assets/charts.js"></script>
+  <script src="./assets/dashboard.js"></script>
+</body>
+</html>

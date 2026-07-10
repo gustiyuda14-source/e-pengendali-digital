@@ -1,3 +1,80 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url=archive/2026-07-10.html"><title>Redirecting...</title></head>
-<body>Redirecting to <a href="archive/2026-07-10.html">latest snapshot</a>...</body></html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pengendali Digital ON</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+  <div class="container">
+    <div id="shell-header"></div>
+    <div id="main-content" style="display:none;">
+      <!-- Hero -->
+      <div class="card card-hero">
+        <div class="card-title">Inspektorat Pemprov Sultra · TA 2026</div>
+        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px; align-items:flex-end">
+          <div>
+            <div style="font-size:14px; color:var(--border-2); margin-bottom:4px">Total Realisasi Terkini</div>
+            <div class="text-xl text-lime" id="hero-realisasi">Rp 0</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px; color:var(--border-2); margin-bottom:4px">Serapan Anggaran</div>
+            <div class="text-xl text-lime" id="hero-pct">0%</div>
+          </div>
+        </div>
+        <div style="margin-top:24px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px">
+          <div id="hero-delta" class="chip chip-up"></div>
+          <div style="width:160px; height:40px;" id="hero-sparkline"></div>
+        </div>
+      </div>
+
+      <!-- KPI 4 Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-box">
+          <div class="kpi-box-lbl">Total Pagu</div>
+          <div class="kpi-box-val" id="kpi-pagu"></div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-box-lbl">Realisasi</div>
+          <div class="kpi-box-val" id="kpi-realisasi"></div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-box-lbl">Sisa Pagu</div>
+          <div class="kpi-box-val" id="kpi-sisa"></div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-box-lbl" id="kpi-last-label">Kenaikan Terakhir</div>
+          <div class="kpi-box-val text-warn-ink" id="kpi-last-val"></div>
+        </div>
+      </div>
+
+      <!-- Nav Cards -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:16px; margin-top:32px">
+        <a href="./dashboard.html" class="card" style="display:block; transition:transform 0.2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+          <h3 style="font-size:14px; margin-bottom:8px">📊 Dashboard Mingguan</h3>
+          <p style="font-size:12px; color:var(--ink-2)">Pantau realisasi per program dan sub-kegiatan minggu ini.</p>
+        </a>
+        <a href="./riwayat.html" class="card" style="display:block; transition:transform 0.2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+          <h3 style="font-size:14px; margin-bottom:8px">🕰️ Riwayat & Arsip</h3>
+          <p style="font-size:12px; color:var(--ink-2)">Lihat progress dari minggu ke minggu dan unduh arsip laporan lama.</p>
+        </a>
+        <a href="./rekening.html" class="card" style="display:block; transition:transform 0.2s" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+          <h3 style="font-size:14px; margin-bottom:8px">🔍 Lacak Rekening</h3>
+          <p style="font-size:12px; color:var(--ink-2)">Telusuri realisasi tiap kode rekening SPJ secara lintas-minggu.</p>
+        </a>
+      </div>
+    </div>
+    <div id="loading" style="padding:40px; text-align:center"><div class="shimmer" style="width:200px; height:20px; border-radius:10px"></div></div>
+    <div id="error-container"></div>
+    <div id="shell-footer"></div>
+  </div>
+
+  <script src="./assets/app.js"></script>
+  <script src="./assets/charts.js"></script>
+  <script src="./assets/home.js"></script>
+</body>
+</html>
