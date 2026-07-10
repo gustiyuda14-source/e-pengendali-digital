@@ -721,7 +721,7 @@ def verify(html: str, expected_total: int | None = None, expected_pagu: int | No
 def build_diff_report(baseline: dict, plan: dict, ver: dict, new_curr: str, pdf_total: int) -> str:
     """Generate markdown diff report."""
     out = []
-    out.append(f"# Update Mingguan PDO — {new_curr}\n")
+    out.append(f"# Update Mingguan E-Pengendali Digital — {new_curr}\n")
     out.append(f"**Snapshot sebelumnya:** {baseline['curr_date']}  ")
     out.append(f"**Total Pagu:** Rp {fmt_rp(plan['total_pagu'])}  ")
     out.append(f"**Realisasi {baseline['curr_date']}:** Rp {fmt_rp(ver['total_f'])} ({ver['total_f']/plan['total_pagu']*100:.2f}% pagu)  ")
@@ -1067,7 +1067,7 @@ def build_export_dict(plan: dict, new_curr: str) -> dict:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="PDO Update — Smart Wizard")
+    ap = argparse.ArgumentParser(description="E-Pengendali Digital Update — Smart Wizard")
     ap.add_argument("pdf", nargs="?", help="Path PDF SPJ Fungsional baru (opsional kalau --deploy-only)")
     ap.add_argument("--baseline", help="Override path baseline HTML (auto-detect by default)")
     ap.add_argument("--output", help="Override path output HTML")
