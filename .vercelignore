@@ -1,0 +1,18 @@
+# Script & source internal — bukan bagian dari situs publik.
+# Tanpa file ini, Vercel akan menyajikan SEMUA file di root sebagai aset
+# statis publik, termasuk script Python dan dokumen internal.
+*.py
+*.pyc
+__pycache__/
+logs/
+pdf_fungsional/
+.claude-flow/
+dokumentasi/
+backup_script/
+arsip_lokal/
+_*.json
+_*.md
+submit_data.json
+server.log
+.DS_Store
+CLAUDE.md

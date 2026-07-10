@@ -51,7 +51,7 @@ if hasattr(sys.stdout, "buffer") and getattr(sys.stdout, "encoding", "").lower()
 # (item level, roll-up ke subkeg/prog/total) dan di-cross-check ke baris
 # grand-total "BELANJA DAERAH" pada PDF. Lihat build_plan() & verify().
 PROJ = Path(__file__).resolve().parent
-DEFAULT_REPO = "pdo-realisasi-2026"
+DEFAULT_REPO = "e-pengendali-digital"
 
 BULAN_FULL_TO_ABBR = {
     "Januari": "Jan", "Februari": "Feb", "Maret": "Mar", "April": "Apr",
@@ -825,7 +825,7 @@ def render_readme(repo_name: str, latest_date: str) -> str:
 
 Dashboard realisasi anggaran **Inspektorat Pemprov Sulawesi Tenggara TA 2026** — update mingguan dari SPJ Fungsional SIPD.
 
-🌐 **Lihat dashboard:** [https://gustiyuda14-source.github.io/{repo_name}/dashboard.html](https://gustiyuda14-source.github.io/{repo_name}/dashboard.html)
+🌐 **Lihat dashboard:** [https://{repo_name}.vercel.app/dashboard.html](https://{repo_name}.vercel.app/dashboard.html)
 📅 **Snapshot terkini:** {latest_date}
 📂 **Arsip mingguan:** [archive/](archive/)
 
@@ -833,10 +833,10 @@ Dashboard realisasi anggaran **Inspektorat Pemprov Sulawesi Tenggara TA 2026** �
 
 Tiap GU baru:
 ```bash
-py pdo_update.py "Fungsional Per <tgl>_<bln>_<thn>.pdf"
+python3 pdo_update.py "pdf_fungsional/Fungsional Per <tgl>_<bln>_<thn>.pdf"
 ```
 
-Script otomatis: extract PDF → hitung rolling snapshot → generate HTML + report → push ke Pages.
+Script otomatis: extract PDF → hitung rolling snapshot → generate HTML + report → push ke GitHub (Vercel auto-deploy).
 
 Lihat `pdo_update.py --help` untuk flag tambahan.
 """
@@ -908,7 +908,7 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
 
     # Git init + first push
     if is_first:
-        print(f"\n  [first deploy] Setup git repo + GitHub Pages...")
+        print(f"\n  [first deploy] Setup git repo (Vercel auto-deploy dari GitHub)...")
         if not auto_confirm:
             if not confirm(f"  Buat repo PUBLIC '{repo_name}' di github.com/gustiyuda14-source dan push?", default=True):
                 print("  Dibatalkan.")
@@ -931,7 +931,7 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
              "index.html", "dashboard.html", "riwayat.html", "rekening.html", "assets", "data", "build_site.py",
              ".nojekyll", ".gitignore", "README.md",
              "archive", "reports", "pdo_update.py", "CLAUDE.md"], cwd=PROJ)
-        run(["git", "commit", "-m", f"Initial PDO dashboard — {new_curr}"], cwd=PROJ)
+        run(["git", "commit", "-m", f"Initial E-Pengendali Digital dashboard — {new_curr}"], cwd=PROJ)
         # Create repo via gh
         try:
             result = run(["gh", "repo", "create", repo_name, "--public", "--source=.", "--remote=origin", "--push"],
@@ -945,13 +945,9 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
         except Exception as e:
             print(f"  ⚠️ gh repo create failed: {e}")
             return None
-        # Enable Pages
-        try:
-            run(["gh", "api", f"repos/gustiyuda14-source/{repo_name}/pages",
-                 "-X", "POST", "-f", "source[branch]=main", "-f", "source[path]=/"],
-                cwd=PROJ, check=False)
-        except Exception:
-            pass
+        # Deploy dilakukan via Vercel (GitHub integration) — hubungkan project Vercel
+        # ke repo ini sekali secara manual (vercel link / dashboard import), setelah itu
+        # tiap git push otomatis ter-deploy. Tidak ada setup di sini.
     else:
         # Subsequent run — commit + push
         run(["git", "add",
@@ -963,7 +959,7 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
         diff_result = run(["git", "diff", "--cached", "--quiet"], cwd=PROJ, check=False)
         if diff_result.returncode == 0:
             print("  ⚠️ Tidak ada perubahan untuk di-commit (idempotent — sudah pernah deploy).")
-            return f"https://gustiyuda14-source.github.io/{repo_name}/"
+            return f"https://{repo_name}.vercel.app/"
         if not auto_confirm:
             if not confirm(f"  Commit & push update untuk {new_curr}?", default=True):
                 print("  Dibatalkan.")
@@ -971,8 +967,9 @@ def deploy_pages(out_html_path: Path, report_md_path: Path, plan: dict, ver: dic
         run(["git", "commit", "-m", f"Update SPJ {new_curr}"], cwd=PROJ)
         run(["git", "push"], cwd=PROJ)
 
-    pages_url = f"https://gustiyuda14-source.github.io/{repo_name}/"
-    return pages_url
+    # Vercel auto-deploy dari GitHub — push di atas sudah cukup men-trigger build.
+    site_url = f"https://{repo_name}.vercel.app/"
+    return site_url
 
 
 # ─── Main Wizard ────────────────────────────────────────────
@@ -1078,7 +1075,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="Generate ke memory saja, tidak tulis file")
     ap.add_argument("--c11p-rolling", action="store_true", help="[DEPRECATED — kini default] Pakai c11p=c11n_lama (literal rolling)")
     ap.add_argument("--c11p-rebase", action="store_true", help="Pakai c11p=0 (mode lama; delta detail = c11n penuh). Default sekarang rolling.")
-    ap.add_argument("--repo", default=DEFAULT_REPO, help=f"Nama repo GH Pages (default: {DEFAULT_REPO})")
+    ap.add_argument("--repo", default=DEFAULT_REPO, help=f"Nama repo GitHub / project Vercel (default: {DEFAULT_REPO})")
     ap.add_argument("--yes", "-y", action="store_true", help="Auto-confirm semua prompt")
     ap.add_argument("--validation-json", help="Emit struct validation summary ke file JSON (untuk dipakai skill Claude Code)")
     ap.add_argument("--export-json", help="Export data c11n per rekening untuk e_pengendalian_submit.py")
@@ -1111,7 +1108,7 @@ def main():
         print(f"  Tanggal: {new_curr}")
         pages_url = deploy_pages(out_path, report_path, {}, {}, new_curr, args.repo, auto_confirm=args.yes)
         if pages_url:
-            print(f"\n  ✅ URL Pages: {pages_url}")
+            print(f"\n  ✅ URL Live: {pages_url}")
         else:
             print(f"  ⚠️ Deploy tidak selesai.")
         print(f"  ⏱ Total waktu: {time.monotonic() - _T_START:.1f}s")

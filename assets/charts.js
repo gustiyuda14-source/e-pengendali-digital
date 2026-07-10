@@ -1,4 +1,4 @@
-// assets/charts.js - Hand-rolled SVG charts for PDO
+// assets/charts.js - Hand-rolled SVG charts for E-Pengendali Digital
 
 function createSVGNode(n, v) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", n);

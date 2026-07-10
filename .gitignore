@@ -4,3 +4,10 @@ Fungsional*.pdf
 *.pptx
 *~$*
 __pycache__/
+generate_bukti_laporan.py
+Laporan_Bukti_Riwayat_PDO_*.pdf
+.DS_Store
+arsip_lokal/
+backup_script/
+dokumentasi/
+pdf_fungsional/

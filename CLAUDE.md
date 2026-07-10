@@ -1,4 +1,4 @@
-# CLAUDE.md — Pengendali Digital ON (PDO)
+# CLAUDE.md — E-Pengendali Digital (EPD)
 **Inspektorat Pemprov Sulawesi Tenggara · TA 2026**
 **User: Bli Gus (Bendahara) · gustiyuda14@gmail.com**
 
@@ -228,7 +228,7 @@ Drop PDF ke folder, lalu di dalam Claude Code ketik:
 ```
 /pdo-update
 ```
-Skill akan: pilih PDF terbaru → run script `--no-deploy` → tampilkan validation summary di chat (total, sisa per program, 5 cross-check e1-e5, top 3 item realisasi, top 3 kenaikan, flag bulan transition) → AskUserQuestion konfirmasi deploy → push ke GitHub Pages kalau OK → (opsional) dry-run + cross-check ganda + AskUserQuestion konfirmasi submit ke e-Pengendalian. Ada gate "review before deploy/submit" supaya tidak ada data salah ter-publish atau terkirim.
+Skill akan: pilih PDF terbaru → run script `--no-deploy` → tampilkan validation summary di chat (total, sisa per program, 5 cross-check e1-e5, top 3 item realisasi, top 3 kenaikan, flag bulan transition) → AskUserQuestion konfirmasi deploy → push ke repo (auto-deploy ke Vercel) kalau OK → (opsional) dry-run + cross-check ganda + AskUserQuestion konfirmasi submit ke e-Pengendalian. Ada gate "review before deploy/submit" supaya tidak ada data salah ter-publish atau terkirim.
 
 Lokasi definisi skill: `/Users/gustiputuyudawirashana/.claude/skills/pdo-update/SKILL.md`.
 
@@ -236,7 +236,7 @@ Lokasi definisi skill: `/Users/gustiputuyudawirashana/.claude/skills/pdo-update/
 ```bash
 python3 pdo_update.py "Fungsional Per <tgl>_<bln>_<thn>.pdf"
 ```
-Script auto: detect baseline HTML terbaru → extract PDF → deteksi bulan transition → susun RAW_DATA pakai logic rolling → generate HTML + diff report `.md` → prompt deploy → commit & push ke GitHub Pages.
+Script auto: detect baseline HTML terbaru → extract PDF → deteksi bulan transition → susun RAW_DATA pakai logic rolling → generate HTML + diff report `.md` → prompt deploy → commit & push (Vercel auto-deploy dari GitHub).
 
 Tambah `-y` untuk skip semua prompt, `--no-deploy` untuk uji lokal, `--deploy-only` untuk push file output terbaru tanpa regenerate.
 
@@ -247,8 +247,8 @@ python3 e_pengendalian_submit.py "_submit_data.json" -y          # live submit
 ```
 Kredensial wajib dari env var `EPENGENDALIAN_EMAIL` / `EPENGENDALIAN_PASS` — tidak ada fallback tersimpan di source.
 
-**Dashboard live:** https://gustiyuda14-source.github.io/pdo-realisasi-2026/
-**Repo:** https://github.com/gustiyuda14-source/pdo-realisasi-2026 (public)
+**Dashboard live:** https://e-pengendali-digital.vercel.app/
+**Repo:** https://github.com/gustiyuda14-source/e-pengendali-digital (public)
 
 ### Edge case yang sudah ter-handle
 - **Bulan transition** (mis. April→Mei): Kol.10 PDF SUDAH inklusif bulan terakhir → `c10_baru = c10_PDF`, `c11p_baru = 0` (semantik bulan baru, default `--c11p rebase`).
@@ -261,10 +261,10 @@ Kredensial wajib dari env var `EPENGENDALIAN_EMAIL` / `EPENGENDALIAN_PASS` — t
 ```
 --baseline <path>        Pilih baseline HTML manual (default: auto-detect by CURR_DATE terbaru)
 --output <path>          Override nama file output
---no-deploy              Skip push GitHub Pages (untuk uji lokal)
+--no-deploy              Skip push (untuk uji lokal)
 --dry-run                Generate ke memory saja, tidak tulis file
 --c11p-rolling           Pakai literal rolling (c11p=c11n_lama), bukan rebase=0
---repo <name>            Override nama repo GitHub Pages
+--repo <name>            Override nama repo GitHub (auto-deploy Vercel)
 --validation-json <path> Emit struct JSON (untuk skill /pdo-update di Claude Code)
 --deploy-only            Skip generate, langsung push file output terbaru
 --yes / -y               Auto-confirm semua prompt

@@ -1,4 +1,4 @@
-// assets/app.js - Shared utilities and data fetching for PDO
+// assets/app.js - Shared utilities and data fetching for E-Pengendali Digital
 
 const rp = n => (!n || n === 0) ? '0' : Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const pct = (n, t) => (!t || !n) ? '0.00' : (n / t * 100).toFixed(2);
@@ -40,7 +40,7 @@ function renderShell(activePage) {
   
   const shellHtml = `
     <div class="nav-shell">
-      <div class="logo-chip">PDO</div>
+      <div class="logo-chip">EPD</div>
       <a href="./index.html" class="nav-link ${activePage === 'home' ? 'active' : ''}">Beranda</a>
       <a href="./dashboard.html" class="nav-link ${activePage === 'dashboard' ? 'active' : ''}">Dashboard</a>
       <a href="./riwayat.html" class="nav-link ${activePage === 'riwayat' ? 'active' : ''}">Riwayat</a>
@@ -61,5 +61,5 @@ function renderShell(activePage) {
 
 function showError(containerId, message) {
   const c = document.getElementById(containerId);
-  if (c) c.innerHTML = `<div class="error-card">${message || 'Gagal memuat data PDO.'}</div>`;
+  if (c) c.innerHTML = `<div class="error-card">${message || 'Gagal memuat data E-Pengendali Digital.'}</div>`;
 }

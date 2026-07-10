@@ -1,8 +1,8 @@
-# pdo-realisasi-2026
+# e-pengendali-digital
 
 Dashboard realisasi anggaran **Inspektorat Pemprov Sulawesi Tenggara TA 2026** — update mingguan dari SPJ Fungsional SIPD.
 
-🌐 **Lihat dashboard:** [https://gustiyuda14-source.github.io/pdo-realisasi-2026/dashboard.html](https://gustiyuda14-source.github.io/pdo-realisasi-2026/dashboard.html)
+🌐 **Lihat dashboard:** [https://e-pengendali-digital.vercel.app/dashboard.html](https://e-pengendali-digital.vercel.app/dashboard.html)
 📅 **Snapshot terkini:** 10 Jul 2026
 📂 **Arsip mingguan:** [archive/](archive/)
 
@@ -10,9 +10,9 @@ Dashboard realisasi anggaran **Inspektorat Pemprov Sulawesi Tenggara TA 2026** �
 
 Tiap GU baru:
 ```bash
-py pdo_update.py "Fungsional Per <tgl>_<bln>_<thn>.pdf"
+python3 pdo_update.py "pdf_fungsional/Fungsional Per <tgl>_<bln>_<thn>.pdf"
 ```
 
-Script otomatis: extract PDF → hitung rolling snapshot → generate HTML + report → push ke Pages.
+Script otomatis: extract PDF → hitung rolling snapshot → generate HTML + report → push ke GitHub (Vercel auto-deploy).
 
 Lihat `pdo_update.py --help` untuk flag tambahan.
