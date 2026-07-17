@@ -245,7 +245,8 @@ Untuk submit ke e-Pengendalian (setelah `--export-json` di-generate):
 python3 e_pengendalian_submit.py "_submit_data.json" --dry-run   # preview dulu
 python3 e_pengendalian_submit.py "_submit_data.json" -y          # live submit
 ```
-Kredensial wajib dari env var `EPENGENDALIAN_EMAIL` / `EPENGENDALIAN_PASS` — tidak ada fallback tersimpan di source.
+Kredensial wajib dari env var `EPENGENDALIAN_USER` / `EPENGENDALIAN_PASS` — tidak ada fallback tersimpan di source.
+Sejak Jul 2026 target submit adalah **e-Pengendalian Ver 2.0** (`epengendalian.sultraprov.go.id`, login username): input per PEKAN dengan lock mingguan — **wajib submit tiap Jumat** (pekan lewat terkunci, tidak bisa backfill). Flag baru: `--minggu N` (paksa pekan), `--tahun`. Versi lama situs Laravel diarsip di `e_pengendalian_submit_v1_legacy.py`.
 
 **Dashboard live:** https://e-pengendali-digital.vercel.app/
 **Repo:** https://github.com/gustiyuda14-source/e-pengendali-digital (public)

@@ -199,6 +199,83 @@ def extract_pdf(pdf_path: Path) -> dict:
     )
 
 
+# ─── Excel Extraction ───────────────────────────────────────
+def extract_excel(xlsx_path: Path) -> dict:
+    """Extract sub/item/rek from Excel SPJ Fungsional (SIPD export).
+
+    Kolom identik dengan PDF SPJ Fungsional (sama urutan, sama index) —
+    export Excel SIPD memakai tabel yang sama persis, jadi seluruh logic
+    klasifikasi (SUB/KEG/REK6, parse_money) dipakai ulang tanpa ubah.
+    Return shape SAMA dengan extract_pdf() supaya build_plan() tidak perlu tahu
+    sumbernya PDF atau Excel.
+    """
+    import openpyxl
+
+    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    ws = wb.active
+
+    sub_data: dict = {}
+    item_data: dict = {}
+    rek_data: list = []
+    current_item: str | None = None
+    bulan_pdf: str | None = None
+    total_row: dict | None = None
+
+    rows = list(ws.iter_rows(min_row=1, max_row=ws.max_row, values_only=True))
+
+    # Deteksi "Bulan : <X>" di baris header (10 baris pertama)
+    for r in rows[:10]:
+        if r and r[0] and isinstance(r[0], str):
+            m = re.search(r"Bulan\s*:\s*(\w+)", r[0])
+            if m:
+                bulan_pdf = m.group(1)
+                break
+
+    for r in rows:
+        if not r or not r[0]:
+            continue
+        kode = str(r[0]).strip()
+        row = [(str(c).strip() if c is not None else "") for c in r]
+        if len(row) != 14:
+            continue
+        rec = dict(
+            kode=kode, nama=row[1],
+            pagu=parse_money(row[2]),
+            ls_gaji_lalu=parse_money(row[3]),
+            ls_gaji_kini=parse_money(row[4]),
+            ls_bj_lalu=parse_money(row[6]),
+            ls_bj_kini=parse_money(row[7]),
+            c10=parse_money(row[9]),
+            c11=parse_money(row[10]),
+            total=parse_money(row[12]),
+            sisa=parse_money(row[13]),
+        )
+        if kode == "5" and "BELANJA DAERAH" in row[1].upper():
+            total_row = rec
+        elif SUB.match(kode):
+            sub_data[kode] = rec
+        elif KEG.match(kode):
+            item_data[kode] = rec
+            current_item = kode
+        elif REK6.match(kode):
+            rec["parent_item"] = current_item
+            rek_data.append(rec)
+
+    return dict(
+        sub=sub_data, item=item_data, rek=rek_data, bulan_pdf=bulan_pdf,
+        total_anggaran=total_row["pagu"] if total_row else None,
+        total_realisasi=total_row["total"] if total_row else None,
+    )
+
+
+def extract_source(path: Path) -> dict:
+    """Dispatch ke extract_pdf() atau extract_excel() by ekstensi file."""
+    ext = path.suffix.lower()
+    if ext in (".xlsx", ".xlsm"):
+        return extract_excel(path)
+    return extract_pdf(path)
+
+
 # ─── Baseline Parsing ───────────────────────────────────────
 def split_balanced(text: str) -> list[str]:
     """Walk top-level brace-balanced objects in `text`."""
@@ -1066,9 +1143,32 @@ def build_export_dict(plan: dict, new_curr: str) -> dict:
     return dict(bulan_num=bulan_num, bulan_nama=bulan_nama, new_date=new_curr, items=items_out)
 
 
+def default_curr_from_filename(name: str) -> str:
+    """Tebak tanggal snapshot dari nama file.
+
+    Dua konvensi didukung:
+      - PDF lama:  "Fungsional Per 22_5_2026.pdf"       (dd_mm_yyyy)
+      - Excel baru: "SIPD - LPJ Fungsional - 17 Juli 2026.xlsx" (dd BulanNama yyyy)
+    """
+    nm = re.search(r"(\d+)_(\d+)_(\d{4})", name)
+    if nm:
+        day, mon, year = int(nm.group(1)), int(nm.group(2)), int(nm.group(3))
+        abbr = next((k for k, v in BULAN_ABBR_TO_NUM.items() if v == mon), None)
+        if abbr:
+            return f"{day} {abbr} {year}"
+    nm = re.search(r"(\d{1,2})\s+(\w+)\s+(\d{4})", name)
+    if nm:
+        day, bln, year = int(nm.group(1)), nm.group(2), int(nm.group(3))
+        num = BULAN_ABBR_TO_NUM.get(bln) or BULAN_FULL_TO_NUM.get(bln)
+        if num:
+            abbr = next(k for k, v in BULAN_ABBR_TO_NUM.items() if v == num)
+            return f"{day} {abbr} {year}"
+    return ""
+
+
 def main():
     ap = argparse.ArgumentParser(description="E-Pengendali Digital Update — Smart Wizard")
-    ap.add_argument("pdf", nargs="?", help="Path PDF SPJ Fungsional baru (opsional kalau --deploy-only)")
+    ap.add_argument("pdf", nargs="?", help="Path PDF/Excel SPJ Fungsional baru (opsional kalau --deploy-only)")
     ap.add_argument("--baseline", help="Override path baseline HTML (auto-detect by default)")
     ap.add_argument("--output", help="Override path output HTML")
     ap.add_argument("--no-deploy", action="store_true", help="Skip push ke GitHub Pages")
@@ -1114,15 +1214,18 @@ def main():
         print(f"  ⏱ Total waktu: {time.monotonic() - _T_START:.1f}s")
         return 0
 
-    # PDF wajib untuk mode normal
+    # PDF/Excel wajib untuk mode normal
     if not args.pdf:
-        print("❌ Argumen PDF wajib (kecuali pakai --deploy-only).")
+        print("❌ Argumen PDF/Excel wajib (kecuali pakai --deploy-only).")
         return 1
     pdf_path = Path(args.pdf)
     if not pdf_path.is_absolute():
         pdf_path = PROJ / pdf_path
     if not pdf_path.exists():
-        print(f"❌ PDF tidak ditemukan: {pdf_path}")
+        print(f"❌ File tidak ditemukan: {pdf_path}")
+        return 1
+    if pdf_path.suffix.lower() not in (".pdf", ".xlsx", ".xlsm"):
+        print(f"❌ Format tidak didukung: {pdf_path.suffix} (pakai .pdf atau .xlsx)")
         return 1
 
     # ─── Step 1: baseline ─────────────────────────────
@@ -1143,10 +1246,11 @@ def main():
     baseline = parse_baseline(baseline_path)
     print(f"  Snapshot lama: {baseline['curr_date']} (prev: {baseline['prev_date']})")
 
-    # ─── Step 2: PDF + bulan transition ───────────────
-    banner("[2/5] Baca PDF + deteksi bulan")
-    print(f"  PDF: {pdf_path.name}")
-    pdf_data = extract_pdf(pdf_path)
+    # ─── Step 2: PDF/Excel + bulan transition ─────────
+    src_kind = "Excel" if pdf_path.suffix.lower() in (".xlsx", ".xlsm") else "PDF"
+    banner(f"[2/5] Baca {src_kind} + deteksi bulan")
+    print(f"  {src_kind}: {pdf_path.name}")
+    pdf_data = extract_source(pdf_path)
     prev_d = parse_date(baseline["curr_date"])
     prev_bulan_num = prev_d[1] if prev_d else None
     pdf_bulan_full = pdf_data.get("bulan_pdf")
@@ -1158,14 +1262,9 @@ def main():
 
     # ─── Step 3: tanggal CURR_DATE baru ───────────────
     banner("[3/5] Tanggal snapshot baru")
-    # Default: ambil tgl dari nama PDF (mis. "Per 22_5_2026.pdf" → 22 Mei 2026)
-    nm = re.search(r"(\d+)_(\d+)_(\d{4})", pdf_path.name)
-    default_curr = ""
-    if nm:
-        day, mon, year = int(nm.group(1)), int(nm.group(2)), int(nm.group(3))
-        abbr = next((k for k,v in BULAN_ABBR_TO_NUM.items() if v == mon), None)
-        if abbr:
-            default_curr = f"{day} {abbr} {year}"
+    # Default: ambil tgl dari nama file (PDF "Per 22_5_2026.pdf" atau
+    # Excel "SIPD - LPJ Fungsional - 17 Juli 2026.xlsx") → "22 Mei 2026"
+    default_curr = default_curr_from_filename(pdf_path.name)
     if args.yes and default_curr:
         new_curr = default_curr
         print(f"  Tanggal: {new_curr} (auto)")
