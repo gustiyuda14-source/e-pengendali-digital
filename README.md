@@ -3,7 +3,7 @@
 Dashboard realisasi anggaran **Inspektorat Pemprov Sulawesi Tenggara TA 2026** — update mingguan dari SPJ Fungsional SIPD.
 
 🌐 **Lihat dashboard:** [https://e-pengendali-digital.vercel.app/dashboard.html](https://e-pengendali-digital.vercel.app/dashboard.html)
-📅 **Snapshot terkini:** 17 Jul 2026
+📅 **Snapshot terkini:** 24 Jul 2026
 📂 **Arsip mingguan:** [archive/](archive/)
 
 ## Update Workflow

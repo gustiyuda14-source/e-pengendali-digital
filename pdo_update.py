@@ -156,7 +156,7 @@ def extract_pdf(pdf_path: Path) -> dict:
     with pdfplumber.open(pdf_path) as pdf:
         # Halaman 1: deteksi "Bulan : <X>"
         first_text = pdf.pages[0].extract_text() or ""
-        m = re.search(r"Bulan\s*:\s*(\w+)", first_text)
+        m = re.search(r"Bulan\s*:\s*(?:\d+\s+)?([A-Za-z]+)", first_text)
         if m:
             bulan_pdf = m.group(1)
 
@@ -226,7 +226,7 @@ def extract_excel(xlsx_path: Path) -> dict:
     # Deteksi "Bulan : <X>" di baris header (10 baris pertama)
     for r in rows[:10]:
         if r and r[0] and isinstance(r[0], str):
-            m = re.search(r"Bulan\s*:\s*(\w+)", r[0])
+            m = re.search(r"Bulan\s*:\s*(?:\d+\s+)?([A-Za-z]+)", r[0])
             if m:
                 bulan_pdf = m.group(1)
                 break
