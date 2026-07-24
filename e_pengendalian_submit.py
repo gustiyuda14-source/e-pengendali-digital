@@ -244,35 +244,57 @@ def plan_week_value(form: dict, c11n: int, minggu: int) -> dict:
     vol_other = sum(x for w, x in form["vols"].items() if w != minggu)
 
     pag_new = c11n - pag_other
-    if pag_new < 0:
-        return {"status": "blocked", "pag": 0, "vol": 0.0,
-                "note": f"total pekan lain (Rp {pag_other:,.0f}) > c11n SPJ (Rp {c11n:,}) — cek manual"}
+    # Cek sinkron DULUAN — kalau pekan target sudah persis = pag_new (termasuk
+    # kasus pag_new negatif hasil koreksi manual, lihat
+    # [[epengendalian-negative-week-correction]]), jangan keburu blocked.
     if abs(pag_new - form["pags"][minggu]) < 0.5:
         return {"status": "sync", "pag": int(round(pag_new)), "vol": form["vols"][minggu],
                 "note": "sudah sinkron dengan SPJ"}
+    if pag_new < 0:
+        return {"status": "blocked", "pag": 0, "vol": 0.0,
+                "note": f"total pekan lain (Rp {pag_other:,.0f}) > c11n SPJ (Rp {c11n:,}) — cek manual"}
 
     nps = v["nilaiPerSatuan"]
-    vol_new = round(pag_new / nps, 2) if nps > 0 else 0.0
     note = ""
 
-    # Mirror 4 validasi updateTotals() sisi situs (server dianggap sama):
-    # volume boleh di-clamp (angka turunan, efek pembulatan); rupiah TIDAK —
-    # kalau rupiah melanggar, jangan kirim, lapor.
+    def _vol_of(pag: float) -> float:
+        return round(pag / nps, 2) if nps > 0 else 0.0
+
+    # Cap target kas bulanan (soft, admin-set oleh Biro) — kalau pag_new melebihi
+    # sisa cap TAPI masih ada ruang (sisa > 0), clamp ke sisa itu dan submit
+    # sebagian; sisanya (deviasi, di luar kendali kita) dilaporkan, tidak dipaksa.
+    # Beda dari cap pagu tahunan di bawah (batas absolut) — ini murni angka
+    # rencana kas yang Biro bisa revisi kapan saja.
+    sisa_target_pag = (v["targetPagKum"] - v["realPagKum"]) - pag_other
+    if pag_new > sisa_target_pag + 0.5:
+        if sisa_target_pag <= 0.5:
+            return {"status": "blocked", "pag": int(round(pag_new)), "vol": _vol_of(pag_new),
+                    "note": (f"realisasi bulan ini Rp {pag_other + pag_new:,.0f} > sisa target kumulatif "
+                             f"Rp {v['targetPagKum'] - v['realPagKum']:,.0f} — target bulanan di "
+                             f"e-Pengendalian terlalu kecil, minta Biro sesuaikan")}
+        deviasi_pag = pag_new - sisa_target_pag
+        pag_new = int(math.floor(sisa_target_pag))
+        note = (f"pag Rp {pag_new + deviasi_pag:,.0f} > sisa cap Rp {sisa_target_pag:,.0f} → clamp ke "
+                f"Rp {pag_new:,} (deviasi Rp {deviasi_pag:,.0f} tidak diinput — target bulanan kurang, "
+                f"minta Biro sesuaikan)")
+
+    # Cap pagu tahunan (hard, batas absolut APBD) — dicek terhadap nilai yang
+    # BENAR-BENAR akan dikirim (setelah clamp di atas), bukan nilai awal.
+    tp = pag_other + pag_new
+    if v["realPagKum"] + tp > v["totalPagTahun"] + 0.001:
+        return {"status": "blocked", "pag": int(round(pag_new)), "vol": _vol_of(pag_new),
+                "note": f"kumulatif Rp {v['realPagKum'] + tp:,.0f} > pagu tahunan Rp {v['totalPagTahun']:,.0f}"}
+
+    # Volume DITURUNKAN dari pag_new FINAL (setelah semua clamp rupiah di atas),
+    # lalu di-clamp SEKALI ke vol_cap — urutan ini wajib: hitung ulang vol dari
+    # pag tanpa re-clamp pernah bikin vol lolos di atas cap (server lalu diam-diam
+    # clamp sendiri saat simpan → verifikasi kita salah lapor "gagal").
+    vol_new = _vol_of(pag_new)
     vol_cap = min(v["targetVolKum"], v["totalVolTahun"]) - v["realVolKum"] - vol_other
     if vol_new > vol_cap + 0.001:
         clamped = max(0.0, math.floor(vol_cap * 100) / 100)
-        note = f"vol {vol_new} > cap {vol_cap:.2f} → clamp ke {clamped}"
+        note = (note + " | " if note else "") + f"vol {vol_new} > cap {vol_cap:.2f} → clamp ke {clamped}"
         vol_new = clamped
-
-    tp = pag_other + pag_new
-    if v["realPagKum"] + tp > v["totalPagTahun"] + 0.001:
-        return {"status": "blocked", "pag": int(round(pag_new)), "vol": vol_new,
-                "note": f"kumulatif Rp {v['realPagKum'] + tp:,.0f} > pagu tahunan Rp {v['totalPagTahun']:,.0f}"}
-    if tp > (v["targetPagKum"] - v["realPagKum"]) + 0.001:
-        return {"status": "blocked", "pag": int(round(pag_new)), "vol": vol_new,
-                "note": (f"realisasi bulan ini Rp {tp:,.0f} > sisa target kumulatif "
-                         f"Rp {v['targetPagKum'] - v['realPagKum']:,.0f} — target bulanan di "
-                         f"e-Pengendalian terlalu kecil, minta Biro sesuaikan")}
 
     return {"status": "submit", "pag": int(round(pag_new)), "vol": vol_new, "note": note}
 
@@ -350,7 +372,7 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
     print(f"  Pekan      : {'ke-' + str(minggu_override) + ' (manual)' if minggu_override else 'auto (pekan terbuka pertama)'}")
     print(f"  Total rek  : {total_rek} | Dengan realisasi: {rek_dengan_realisasi}")
     print(f"  Mode       : {'DRY-RUN (tidak ada yang dikirim)' if dry_run else 'LIVE'}")
-    print(f"  LS Gaji    : {'AKTIF (--submit-gaji)' if submit_gaji else 'DILEWATI (default)'}"
+    print(f"  LS Gaji    : {'IKUT diinput (default)' if submit_gaji else 'DILEWATI (--skip-gaji)'}"
           + (f" — {len(gaji_rek)} rek, Rp {gaji_total:,}" if submit_gaji and gaji_rek else ""))
 
     if submit_gaji and gaji_rek and not dry_run:
@@ -359,7 +381,7 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
         if not auto_confirm:
             g = input(f"     Lanjut kirim Rp {gaji_total:,}? [y/N]: ").strip().lower()
             if g != "y":
-                print("     Gaji dibatalkan — jalankan lagi tanpa --submit-gaji untuk skip.")
+                print("     Gaji dibatalkan — jalankan lagi dengan --skip-gaji untuk lewati.")
                 return 0
 
     if not auto_confirm:
@@ -393,10 +415,10 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
                 skip += 1
                 continue
 
-            # Belanja Pegawai / LS Gaji (5.1.01.*) — OPT-IN via --submit-gaji.
+            # Belanja Pegawai / LS Gaji (5.1.01.*) — IKUT default, hanya dilewati bila --skip-gaji.
             if normalize_code(rek_kode).startswith("5.1.1.") and not submit_gaji:
                 results.append(_log_row(item_kode, rek_kode, c11n, 0, 0.0, "skip",
-                                        "Belanja Pegawai (5.1.01) — perlu flag --submit-gaji"))
+                                        "Belanja Pegawai (5.1.01) — dilewati via --skip-gaji"))
                 skip += 1
                 continue
 
@@ -493,8 +515,8 @@ def main() -> int:
                     help="Paksa pekan target 1-5 (default: pekan terbuka pertama)")
     ap.add_argument("--tahun",     type=int, default=None,
                     help="Override tahun anggaran (default: dari new_date export)")
-    ap.add_argument("--submit-gaji", action="store_true",
-                    help="Ikutkan rekening Belanja Pegawai/LS Gaji (5.1.01.*). Default: dilewati.")
+    ap.add_argument("--skip-gaji", action="store_true",
+                    help="Lewati rekening Belanja Pegawai/LS Gaji (5.1.01.*). Default: gaji IKUT diinput.")
     ap.add_argument("--user",      default=DEFAULT_USER, help="Username login (default: env EPENGENDALIAN_USER)")
     ap.add_argument("--password",  default=DEFAULT_PASS, help="Password login (default: env EPENGENDALIAN_PASS)")
     args = ap.parse_args()
@@ -505,7 +527,7 @@ def main() -> int:
         return 1
 
     return run_batch(args.export_json, args.dry_run, args.yes,
-                     args.user, args.password, args.no_cache, args.submit_gaji,
+                     args.user, args.password, args.no_cache, not args.skip_gaji,
                      args.minggu, args.tahun)
 
 
