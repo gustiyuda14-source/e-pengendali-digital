@@ -1,58 +1,63 @@
 /* ═══════════════════════════════════════════════════════════
    E-Pengendali Digital - Design Tokens
-   Glassmorphism (surface) + Y2K chrome (accent) + Executive
-   Dashboard (structure). Semantic status colors are never
-   tinted by the Y2K pair; they must stay unambiguous.
+   Executive Dashboard (light) + frosted panels + Y2K chrome.
+   Ground is white, so the chrome ramp runs dark (brushed
+   graphite) and the Y2K pair carries -ink variants for text.
+   Semantic status colors are never tinted by the Y2K pair.
    ═══════════════════════════════════════════════════════════ */
 :root {
-  /* ground & ink */
-  --bg: #080C17;            /* deep navy-black, never pure #000 */
-  --bg-2: #0D1322;
-  --surface: #141B2E;       /* SOLID: charts.js fills sparkline endpoints with this */
-  --ink: #EDF1F8;
-  --ink-2: #A5B0C6;
-  --ink-3: #6D7A93;
-  --border: rgba(255,255,255,0.10);
-  --border-2: rgba(255,255,255,0.20);
+  /* surface & ink */
+  --bg: #F1F3F7;            /* page ground, a touch cooler than the cards */
+  --bg-2: #F7F8FA;          /* Executive Dashboard panel tone */
+  --surface: #FFFFFF;       /* SOLID: charts.js fills sparkline endpoints with this */
+  --ink: #0F172A;
+  --ink-2: #475569;
+  --ink-3: #64748B;
+  --border: #E2E8F0;
+  --border-2: #CBD5E1;
 
-  /* glass panel system */
-  --glass: rgba(255,255,255,0.055);
-  --glass-2: rgba(255,255,255,0.085);
-  --glass-blur: 20px;
+  /* frosted panel system (reads softly on a light ground) */
+  --glass: rgba(255,255,255,0.72);
+  --glass-2: rgba(255,255,255,0.92);
+  --glass-blur: 16px;
 
-  /* Y2K chrome ramp */
-  --chrome-1: #FFFFFF;
-  --chrome-2: #D3DCEA;
-  --chrome-3: #8E9BB2;
+  /* Y2K chrome, inverted to dark metal so it stays legible on white */
+  --chrome-1: #334155;
+  --chrome-2: #0F172A;
+  --chrome-3: #475569;
 
-  /* Y2K accent pair - decorative surfaces only, never status */
+  /* Y2K accent pair - fills stay vivid, text uses the -ink variants */
   --y2k-pink: #FF69B4;
   --y2k-cyan: #22E5FF;
+  --y2k-pink-ink: #C2185B;
+  --y2k-cyan-ink: #0E7490;
 
-  /* lime = growth / realisasi (brand accent, retuned for dark) */
-  --lime: #B7F04A;
-  --lime-chart: #A3E635;    /* chart marks */
-  --lime-soft: rgba(163,230,53,0.13);
-  --lime-deep: #C2F45C;     /* was dark-on-white, now light-on-dark */
-  --lime-ink: #D8FA92;
+  /* lime = growth / realisasi (original validated light values) */
+  --lime: #A3E635;          /* LARGE TEXT on --ink only */
+  --lime-chart: #6BA80E;    /* chart marks */
+  --lime-soft: #ECFCCB;     /* bg highlight */
+  --lime-deep: #65A30D;     /* marks/text on WHITE */
+  --lime-ink: #3F6212;      /* text on --lime-soft */
 
   /* status */
-  --danger: #FF6B6B;
-  --danger-soft: rgba(255,107,107,0.14);
-  --danger-ink: #FFA3A3;
+  --danger: #EF4444;
+  --danger-soft: #FEE2E2;
+  --danger-ink: #B91C1C;
 
-  --warn: #FBBF24;
-  --warn-soft: rgba(251,191,36,0.14);
-  --warn-ink: #FCD670;
+  --warn: #F59E0B;
+  --warn-soft: #FEF3C7;
+  --warn-ink: #B45309;
 
-  --info: #8B97AE;
-  --info-soft: rgba(139,151,174,0.12);
+  --info: #64748B;
+  --info-soft: #F1F5F9;
 
-  --font: 'Inter', system-ui, sans-serif;
+  /* Type: the Executive Dashboard specimen runs on the OS system stack */
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
   --radius: 16px;
   --radius-sm: 10px;
-  --shadow: 0 18px 44px rgba(3,7,18,0.55), inset 0 1px 0 rgba(255,255,255,0.14);
+  --shadow: 0 1px 2px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.07);
+  --shadow-lift: 0 2px 4px rgba(15,23,42,.07), 0 14px 32px rgba(15,23,42,.10);
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -67,8 +72,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Aurora ground: gives the glass something real to refract.
-   Fixed + pointer-events:none so it never repaints on scroll. */
+/* Very soft tint field so the frosted panels have something to pick
+   up. Kept faint: the ground must still read as white. */
 body::before {
   content: "";
   position: fixed;
@@ -76,27 +81,24 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(38% 42% at 12% 8%,  rgba(255,105,180,0.20), transparent 70%),
-    radial-gradient(42% 46% at 88% 4%,  rgba(34,229,255,0.16),  transparent 70%),
-    radial-gradient(50% 50% at 70% 88%, rgba(163,230,53,0.10),  transparent 72%);
-  filter: blur(40px) saturate(130%);
+    radial-gradient(38% 42% at 10% 6%,  rgba(255,105,180,0.10), transparent 70%),
+    radial-gradient(42% 46% at 90% 2%,  rgba(34,229,255,0.10),  transparent 70%),
+    radial-gradient(48% 48% at 72% 92%, rgba(163,230,53,0.08),  transparent 72%);
+  filter: blur(40px);
 }
 
 a { text-decoration: none; color: inherit; }
 
 :focus-visible {
-  outline: 2px solid var(--y2k-cyan);
+  outline: 2px solid var(--y2k-cyan-ink);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--chrome-3), #5A6580);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover { background: var(--chrome-2); }
+::-webkit-scrollbar-track { background: #E9EDF3; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
 
 /* ─── Layout ─────────────────────────────────────────────── */
 .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
@@ -114,7 +116,7 @@ a { text-decoration: none; color: inherit; }
 }
 .nav-shell::-webkit-scrollbar { display: none; }
 
-/* Y2K chrome+holo mark. Decorative, carries no status. */
+/* Y2K holo mark. Decorative, carries no status. */
 .logo-chip {
   background: linear-gradient(135deg, var(--y2k-pink), var(--y2k-cyan));
   color: #0A0F1C;
@@ -124,7 +126,7 @@ a { text-decoration: none; color: inherit; }
   font-size: 14px;
   letter-spacing: 0.6px;
   flex-shrink: 0;
-  box-shadow: 0 4px 16px rgba(255,105,180,0.30), inset 0 1px 0 rgba(255,255,255,0.55);
+  box-shadow: 0 3px 12px rgba(255,105,180,0.28), inset 0 1px 0 rgba(255,255,255,0.6);
 }
 .nav-link {
   padding: 9px 16px;
@@ -142,21 +144,20 @@ a { text-decoration: none; color: inherit; }
   white-space: nowrap;
   transition: color .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease);
 }
-.nav-link:hover { background: var(--glass-2); color: var(--ink); border-color: var(--border-2); }
+.nav-link:hover { background: #FFFFFF; color: var(--ink); border-color: var(--border-2); }
 .nav-link.active {
-  color: #0A0F1C;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--chrome-1), var(--chrome-2) 55%, var(--chrome-3));
-  border-color: transparent;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+  color: #FFFFFF;
+  font-weight: 600;
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
-/* ─── Glass panels ───────────────────────────────────────── */
+/* ─── Panels ─────────────────────────────────────────────── */
 .card {
   position: relative;
-  background: linear-gradient(160deg, var(--glass-2), var(--glass));
-  backdrop-filter: blur(var(--glass-blur)) saturate(165%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(165%);
+  background: var(--glass-2);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
@@ -171,13 +172,16 @@ a { text-decoration: none; color: inherit; }
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 1px;
+  height: 2px;
   background: linear-gradient(90deg, transparent, var(--y2k-pink), var(--y2k-cyan), transparent);
-  opacity: .55;
+  opacity: .7;
 }
+/* Dark anchor band: .text-lime is only legible on a dark ground. */
 .card-hero {
-  background: linear-gradient(160deg, rgba(255,105,180,0.10), rgba(34,229,255,0.07) 60%, var(--glass));
-  border-color: var(--border-2);
+  background: var(--ink);
+  color: #F8FAFC;
+  border-color: var(--ink);
+  box-shadow: 0 12px 32px rgba(15,23,42,0.22);
 }
 .card-title {
   font-size: 11px;
@@ -196,26 +200,10 @@ a { text-decoration: none; color: inherit; }
 }
 .text-xl {
   font-size: 32px;
-  font-weight: 700;
-  font-family: var(--mono);
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
-  /* Chrome treatment: brief-pinned Y2K, confined to headline figures */
-  background: linear-gradient(180deg, var(--chrome-1) 0%, var(--chrome-2) 40%, var(--chrome-3) 54%, var(--chrome-1) 72%, var(--chrome-2) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
-@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
-  .text-xl { color: var(--ink); background: none; }
-}
-/* A figure that carries a status color keeps it: chrome is for neutral
-   figures only. Drops the gradient so nothing is clipped behind it. */
-.text-xl.text-lime,
-.text-xl.text-lime-deep,
-.text-xl.text-danger-ink,
-.text-xl.text-warn-ink { background: none; }
-
 .text-lime { color: var(--lime); }
 .text-lime-deep { color: var(--lime-deep); }
 .text-danger-ink { color: var(--danger-ink); }
@@ -239,10 +227,10 @@ a { text-decoration: none; color: inherit; }
   font-weight: 600;
   white-space: nowrap;
 }
-.chip-up { background: var(--lime-soft); color: var(--lime-ink); border: 1px solid rgba(163,230,53,0.34); }
-.chip-zero { background: rgba(255,255,255,0.06); color: var(--ink-2); border: 1px solid var(--border); }
-.chip-warn { background: var(--warn-soft); color: var(--warn-ink); border: 1px solid rgba(251,191,36,0.36); }
-.chip-danger { background: var(--danger-soft); color: var(--danger-ink); border: 1px solid rgba(255,107,107,0.36); }
+.chip-up { background: var(--lime-soft); color: var(--lime-ink); border: 1px solid rgba(101,163,13,0.22); }
+.chip-zero { background: #EEF1F6; color: var(--ink-2); border: 1px solid var(--border); }
+.chip-warn { background: var(--warn-soft); color: var(--warn-ink); border: 1px solid rgba(245,158,11,0.26); }
+.chip-danger { background: var(--danger-soft); color: var(--danger-ink); border: 1px solid rgba(239,68,68,0.26); }
 .chip-info { background: var(--info-soft); color: var(--ink-2); border: 1px solid var(--border); }
 
 /* ─── KPI row (Executive Dashboard) ──────────────────────── */
@@ -254,37 +242,35 @@ a { text-decoration: none; color: inherit; }
 }
 .kpi-box {
   position: relative;
-  min-width: 0;               /* stop grid blowout: mono figures must be shrinkable */
-  background: linear-gradient(160deg, var(--glass-2), var(--glass));
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  min-width: 0;               /* stop grid blowout: long figures must be shrinkable */
+  background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 16px;
+  padding: 16px 14px;
   overflow: hidden;
-  transition: transform .25s var(--ease), border-color .25s var(--ease);
+  box-shadow: var(--shadow);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
 }
-.kpi-box:hover { transform: translateY(-2px); border-color: var(--border-2); }
+.kpi-box:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
 /* No decorative hairline here: dashboard.js already paints a semantic
    border-top per KPI. A second accent line would compete with it. */
 .kpi-box-lbl {
   font-size: 10px;
-  color: var(--y2k-cyan);
+  color: var(--y2k-cyan-ink);
   text-transform: uppercase;
   letter-spacing: 0.7px;
   font-weight: 700;
   margin-bottom: 8px;
 }
 .kpi-box-val {
-  /* "Rp" and the figure share one text node, so they must never break
-     apart. Sized to keep the longest figure on one line at 6-up. */
-  font-size: clamp(14px, 1.3vw, 16px);
+  /* Specimen treatment: bold sans, tabular figures, dark ink.
+     "Rp" and the figure share one text node, so they must not break. */
+  font-size: clamp(16px, 1.4vw, 18px);
   white-space: nowrap;
-  font-weight: 700;
-  font-family: var(--mono);
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
-  background: linear-gradient(180deg, var(--chrome-1) 0%, var(--chrome-2) 46%, var(--chrome-3) 58%, var(--chrome-1) 100%);
+  background: linear-gradient(180deg, var(--chrome-1) 0%, var(--chrome-2) 50%, var(--chrome-3) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -299,7 +285,7 @@ a { text-decoration: none; color: inherit; }
 /* ─── Selisih banner ─────────────────────────────────────── */
 .selisih-banner {
   background: var(--lime-soft);
-  border: 1px solid rgba(163,230,53,0.30);
+  border: 1px solid rgba(101,163,13,0.22);
   border-radius: var(--radius-sm);
   padding: 16px;
   display: flex;
@@ -307,13 +293,11 @@ a { text-decoration: none; color: inherit; }
   gap: 16px;
   align-items: center;
   margin-bottom: 20px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
-.sel-item { flex: 1; text-align: center; min-width: 90px; border-right: 1px solid rgba(163,230,53,0.18); }
+.sel-item { flex: 1; text-align: center; min-width: 90px; border-right: 1px solid rgba(101,163,13,0.16); }
 .sel-item:last-child { border-right: none; }
 .sel-lbl { font-size: 9px; text-transform: uppercase; color: var(--lime-ink); font-weight: 700; letter-spacing: 0.6px; margin-bottom: 4px; }
-.sel-val { font-size: 14px; font-weight: 700; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--lime-deep); }
+.sel-val { font-size: 14px; font-weight: 700; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--lime-ink); }
 @media(max-width:760px) {
   .selisih-banner { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; }
   .sel-item { border-right: none; min-width: 0; }
@@ -336,34 +320,31 @@ a { text-decoration: none; color: inherit; }
   border-bottom: 1px solid var(--border);
 }
 .pdo-table th {
-  background: rgba(255,255,255,0.05);
+  background: var(--bg-2);
   font-weight: 700; color: var(--ink-2);
   text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;
   position: sticky; top: 0; z-index: 1;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 }
 .pdo-table th.r, .pdo-table td.r { text-align: right; }
 .pdo-table td.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.pdo-table tr:hover { background: rgba(255,255,255,0.045); }
+.pdo-table tr:hover { background: #F5F7FA; }
 .pdo-table tr.clickable { cursor: pointer; }
 .pdo-table tr.clickable:hover { background: var(--lime-soft); }
 
-.prog-row td { background: rgba(255,255,255,0.07); font-weight: 700; color: var(--ink); }
-.subkeg-row td { background: rgba(255,255,255,0.025); border-bottom: 1px dashed var(--border); }
-.item-row td { background: transparent; }
+.prog-row td { background: #EDF1F6; font-weight: 700; color: var(--ink); }
+.subkeg-row td { background: #FAFBFD; border-bottom: 1px dashed var(--border); }
+.item-row td { background: var(--surface); }
 
 /* ─── Mobile Accordion Cards ─────────────────────────────── */
 .acc-card {
-  background: linear-gradient(160deg, var(--glass-2), var(--glass));
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   margin-bottom: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow);
 }
-.acc-prog { background: rgba(255,255,255,0.07); padding: 12px; font-weight: 700; font-size: 12px; border-bottom: 1px solid var(--border); }
+.acc-prog { background: #EDF1F6; padding: 12px; font-weight: 700; font-size: 12px; border-bottom: 1px solid var(--border); }
 .acc-sub { padding: 10px 12px; border-bottom: 1px dashed var(--border); font-size: 11px; font-weight: 600; color: var(--ink-2); }
 .acc-item { padding: 12px; border-bottom: 1px solid var(--border); font-size: 11px; }
 .acc-item:last-child { border-bottom: none; }
@@ -373,23 +354,21 @@ a { text-decoration: none; color: inherit; }
 /* ─── Modal (Bottom Sheet on Mobile) ─────────────────────── */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(4,8,18,0.72); backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(15,23,42,0.45); backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 100; display: flex; align-items: center; justify-content: center;
   opacity: 0; visibility: hidden; transition: opacity .2s var(--ease), visibility .2s var(--ease);
 }
 .modal-overlay.active { opacity: 1; visibility: visible; }
 
 .modal-content {
-  background: linear-gradient(160deg, rgba(30,39,62,0.96), rgba(16,22,38,0.96));
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border: 1px solid var(--border-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
   width: 90%; max-width: 600px;
   border-radius: var(--radius);
   max-height: 90vh; overflow-y: auto;
   transform: translateY(20px); transition: transform .3s var(--ease);
-  box-shadow: 0 30px 70px rgba(0,0,0,0.6);
+  box-shadow: 0 30px 70px rgba(15,23,42,0.28);
 }
 .modal-overlay.active .modal-content { transform: translateY(0); }
 
@@ -405,16 +384,16 @@ a { text-decoration: none; color: inherit; }
 .modal-hdr {
   padding: 16px 20px; border-bottom: 1px solid var(--border);
   display: flex; justify-content: space-between; align-items: center;
-  position: sticky; top: 0; background: rgba(16,22,38,0.96); z-index: 2;
+  position: sticky; top: 0; background: var(--surface); z-index: 2;
 }
 .modal-close {
-  background: rgba(255,255,255,0.08); border: 1px solid var(--border);
+  background: #EEF1F6; border: 1px solid var(--border);
   width: 40px; height: 40px;
   border-radius: 999px; font-size: 20px; color: var(--ink-2);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: background .2s var(--ease), color .2s var(--ease);
 }
-.modal-close:hover { background: rgba(255,255,255,0.16); color: var(--ink); }
+.modal-close:hover { background: var(--border); color: var(--ink); }
 .modal-body { padding: 20px; }
 
 /* ─── Rekening Card (inside modal) ───────────────────────── */
@@ -423,10 +402,10 @@ a { text-decoration: none; color: inherit; }
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
   overflow: hidden;
-  background: rgba(255,255,255,0.035);
+  background: var(--surface);
 }
-.rek-hdr { background: rgba(255,255,255,0.06); padding: 12px; border-bottom: 1px solid var(--border); }
-.rek-kode { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--y2k-cyan); }
+.rek-hdr { background: var(--bg-2); padding: 12px; border-bottom: 1px solid var(--border); }
+.rek-kode { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--y2k-cyan-ink); }
 .rek-nama { font-size: 12px; font-weight: 600; margin-top: 4px; color: var(--ink); }
 .rek-row {
   display: flex; justify-content: space-between; align-items: center;
@@ -445,10 +424,10 @@ a { text-decoration: none; color: inherit; }
 
 /* ─── Loading / Error ────────────────────────────────────── */
 .shimmer {
-  background: rgba(255,255,255,0.06);
+  background: #EDF1F6;
   background-image: linear-gradient(90deg,
-    rgba(255,255,255,0.06) 0%, rgba(255,105,180,0.20) 20%,
-    rgba(34,229,255,0.20) 40%, rgba(255,255,255,0.06) 60%);
+    #EDF1F6 0%, rgba(255,105,180,0.22) 20%,
+    rgba(34,229,255,0.22) 40%, #EDF1F6 60%);
   background-repeat: no-repeat;
   background-size: 800px 100%;
   display: inline-block;
@@ -459,7 +438,7 @@ a { text-decoration: none; color: inherit; }
   100% { background-position: 468px 0; }
 }
 .error-card {
-  background: var(--danger-soft); border: 1px solid rgba(255,107,107,0.38);
+  background: var(--danger-soft); border: 1px solid rgba(239,68,68,0.3);
   color: var(--danger-ink); padding: 20px; border-radius: var(--radius-sm);
   text-align: center; margin: 40px auto; max-width: 500px;
 }
@@ -484,13 +463,15 @@ a { text-decoration: none; color: inherit; }
 
 /* ─── Accessibility fallbacks ────────────────────────────── */
 @media (prefers-reduced-transparency: reduce) {
-  .card, .kpi-box, .acc-card, .nav-link, .modal-content, .pdo-table th {
+  .card, .nav-link, .modal-overlay {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    background: var(--surface);
   }
+  /* .card-hero is excluded on purpose: it is already opaque, and
+     forcing it to --surface would put lime text on white. */
+  .card:not(.card-hero), .nav-link { background: var(--surface); }
   body::before { display: none; }
 }
 @media (prefers-contrast: more) {
-  :root { --border: rgba(255,255,255,0.28); --border-2: rgba(255,255,255,0.45); --ink-3: #8B97AE; }
+  :root { --border: #94A3B8; --border-2: #64748B; --ink-3: #475569; }
 }
