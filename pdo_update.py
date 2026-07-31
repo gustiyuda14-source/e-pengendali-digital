@@ -327,8 +327,8 @@ def parse_baseline(html_path: Path) -> dict:
 
     nodes = []
     det_re = re.compile(
-        r"\{k:'([\d\.]+)',n:'((?:[^'\\]|\\.)*)',p:(\d+),c10:(\d+),c11p:(\d+),"
-        r"c11n:(\d+),total:(\d+),sisa:(\d+),delta:(\d+)\}"
+        r"\{k:'([\d\.]+)',n:'((?:[^'\\]|\\.)*)',p:(-?\d+),c10:(-?\d+),c11p:(-?\d+),"
+        r"c11n:(-?\d+),total:(-?\d+),sisa:(-?\d+),delta:(-?\d+)\}"
     )
 
     for obj in raw_objs:
@@ -752,7 +752,7 @@ def verify(html: str, expected_total: int | None = None, expected_pagu: int | No
     prog_re = re.compile(r"\{t:'prog',k:'([\d\.]+)',n:'((?:[^'\\]|\\.)*)',p:(\d+),m:(\d+),f:(\d+)")
     sub_re  = re.compile(r"\{t:'subkeg',k:'([\d\.]+)',n:'((?:[^'\\]|\\.)*)',p:(\d+),m:(\d+),f:(\d+),pg:'([\d\.]+)'")
     item_re = re.compile(r"\{t:'item',k:'([\d\.]+)',n:'((?:[^'\\]|\\.)*)',p:(\d+),m:(\d+),f:(\d+),sk:'([\d\.]+)'")
-    det_re  = re.compile(r"\{k:'([\d\.]+)',n:'((?:[^'\\]|\\.)*)',p:(\d+),c10:(\d+),c11p:(\d+),c11n:(\d+),total:(\d+),sisa:(\d+),delta:(\d+)\}")
+    det_re  = re.compile(r"\{k:'([\d\.]+)',n:'((?:[^'\\]|\\.)*)',p:(-?\d+),c10:(-?\d+),c11p:(-?\d+),c11n:(-?\d+),total:(-?\d+),sisa:(-?\d+),delta:(-?\d+)\}")
 
     progs = {m.group(1): dict(p=int(m.group(3)), m=int(m.group(4)), f=int(m.group(5))) for m in prog_re.finditer(html)}
     subs  = {m.group(1): dict(p=int(m.group(3)), m=int(m.group(4)), f=int(m.group(5)), pg=m.group(6)) for m in sub_re.finditer(html)}
