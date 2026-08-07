@@ -253,6 +253,13 @@ Sejak Jul 2026 target submit adalah **e-Pengendalian Ver 2.0** (`epengendalian.s
 **Dashboard live:** https://e-pengendali-digital.vercel.app/
 **Repo:** https://github.com/gustiyuda14-source/e-pengendali-digital (public)
 
+**Laporan deviasi otomatis.** Tiap run submit yang punya rekening tertahan (blocked/clamp) menulis `_deviasi.json` — berisi nilai yang BENAR-BENAR tersimpan di server per rekening (dibaca dari form, bukan diturunkan dari SPJ). Lanjutkan dengan:
+```bash
+python3 generate_laporan_deviasi.py          # reports/<iso>-anggaran-diblokir.html + .pdf
+python3 generate_laporan_deviasi.py --selftest   # cek invarian rekonsiliasi, tanpa server
+```
+Kalau tidak ada deviasi, `_deviasi.json` otomatis dihapus supaya laporan minggu lalu tidak jadi laporan basi. Badge di laporan wajib "✓ MATCH" sebelum dikirim ke Biro.
+
 ### Edge case yang sudah ter-handle
 - **Bulan transition** (mis. April→Mei): Kol.10 PDF SUDAH inklusif bulan terakhir → `c10_baru = c10_PDF`, `c11p_baru = 0` (semantik bulan baru, default `--c11p rebase`).
 - **Rekening LS Gaji / LS BJ**: Include sebagai detail dengan `c10/c11n += Kol.4-6 + Kol.7-9`. Total detail = Kol.13 PDF (semua jalur realisasi). Label modal sesuaikan ke "Kol.13 SPJ".
