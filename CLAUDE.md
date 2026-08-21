@@ -253,6 +253,12 @@ Sejak Jul 2026 target submit adalah **e-Pengendalian Ver 2.0** (`epengendalian.s
 **Dashboard live:** https://e-pengendali-digital.vercel.app/
 **Repo:** https://github.com/gustiyuda14-source/e-pengendali-digital (public)
 
+**Verifikasi dua langkah sebelum declare selesai.** Status per-rekening "ok" tidak cukup:
+1. `./run_submit_v2.sh "_submit_data.json" --dry-run -y --no-cache` — cakupan **bulan berjalan**; harus 0 sukses tersisa.
+2. `./run_audit_ytd.sh` — cakupan **akumulasi setahun**; invarian `server_ytd + deviasi = total SPJ parser` harus selisih Rp 0. Exit 1 kalau tidak tutup → jangan bilang task selesai. Detail per rekening di `_audit_ytd.json`; uji offline `python3 audit_ytd.py --selftest`.
+
+Server tidak menyimpan satu angka total realisasi — dihitung per rekening: `realPagKum` (kumulatif s.d. bulan LALU) + `Σ pag_w1..w5` (bulan berjalan). `totalPagTahun` itu **pagu tahunan**, bukan realisasi.
+
 **Laporan deviasi otomatis.** Tiap run submit yang punya rekening tertahan (blocked/clamp) menulis `_deviasi.json` — berisi nilai yang BENAR-BENAR tersimpan di server per rekening (dibaca dari form, bukan diturunkan dari SPJ). Lanjutkan dengan:
 ```bash
 python3 generate_laporan_deviasi.py          # reports/<iso>-anggaran-diblokir.html + .pdf
