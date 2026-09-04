@@ -259,12 +259,13 @@ Sejak Jul 2026 target submit adalah **e-Pengendalian Ver 2.0** (`epengendalian.s
 
 Server tidak menyimpan satu angka total realisasi — dihitung per rekening: `realPagKum` (kumulatif s.d. bulan LALU) + `Σ pag_w1..w5` (bulan berjalan). `totalPagTahun` itu **pagu tahunan**, bukan realisasi.
 
-**Laporan deviasi otomatis.** Tiap run submit yang punya rekening tertahan (blocked/clamp) menulis `_deviasi.json` — berisi nilai yang BENAR-BENAR tersimpan di server per rekening (dibaca dari form, bukan diturunkan dari SPJ). Lanjutkan dengan:
+**Laporan deviasi otomatis — angkanya KUMULATIF.** Tiap run submit yang punya rekening tertahan (blocked/clamp) menulis `_deviasi.json`, tapi itu hanya blokir **minggu itu**. Begitu `c11n` minggu berikutnya nol, sisa yang masih nyangkut dari minggu-minggu sebelumnya hilang dari `_deviasi.json` padahal uangnya belum masuk server — laporan ke pimpinan tidak boleh setengah-setengah. Karena itu `generate_laporan_deviasi.py` mengambil total dan rincian dari `_audit_ytd.json` (kumulatif, angka realisasi live per program), dan `_deviasi.json` cuma dipakai untuk catatan alasan per rekening + angka pembanding "blokir baru minggu ini". Jalankan audit DULU:
 ```bash
+./run_audit_ytd.sh                           # wajib, isi _audit_ytd.json
 python3 generate_laporan_deviasi.py          # reports/<iso>-anggaran-diblokir.html + .pdf
 python3 generate_laporan_deviasi.py --selftest   # cek invarian rekonsiliasi, tanpa server
 ```
-Kalau tidak ada deviasi, `_deviasi.json` otomatis dihapus supaya laporan minggu lalu tidak jadi laporan basi. Badge di laporan wajib "✓ MATCH" sebelum dikirim ke Biro.
+Script menolak jalan (exit 1) kalau `_audit_ytd.json` tidak ada, beda tanggal dengan `_validation.json`, atau `selisih != 0`. Kolom "Realisasi v2" di laporan diambil dari total live server per program — bukan turunan `SPJ − deviasi`, yang bikin badge MATCH jadi tautologi dan tidak pernah bisa gagal. Badge wajib "✓ MATCH" sebelum dikirim ke Biro.
 
 ### Edge case yang sudah ter-handle
 - **Bulan transition** (mis. April→Mei): Kol.10 PDF SUDAH inklusif bulan terakhir → `c10_baru = c10_PDF`, `c11p_baru = 0` (semantik bulan baru, default `--c11p rebase`).
