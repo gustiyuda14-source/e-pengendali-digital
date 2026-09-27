@@ -1135,7 +1135,7 @@ def build_export_dict(plan: dict, new_curr: str) -> dict:
     items_out  = {}
     for kode, item in plan["item"].items():
         dets = [
-            dict(kode=d["k"], nama=d["n"], pagu=d["p"], c11n=d["c11n"])
+            dict(kode=d["k"], nama=d["n"], pagu=d["p"], c11n=d["c11n"], total=d["total"])
             for d in item["details"]
         ]
         if dets:

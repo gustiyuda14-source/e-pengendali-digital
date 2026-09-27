@@ -400,8 +400,24 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
     print(f"  ⏱ Mapping anggaran_id: {time.monotonic() - t_map:.1f}s")
 
     results = []
+    deviasi_rows = []
     ok = err = skip = blocked = 0
     t_batch = time.monotonic()
+
+    def catat_deviasi(item_kode, item_nama, det, c11n, server_total, note):
+        """Rekam gap c11n SPJ vs nilai yang BENAR-BENAR tersimpan di server.
+
+        server_total dibaca dari form e-Pengendalian (Σ semua pekan), bukan
+        dihitung dari SPJ — supaya rekonsiliasi di laporan tetap independen.
+        """
+        dev = int(round(c11n - server_total))
+        if dev > 0:
+            deviasi_rows.append({
+                "kode_item": item_kode, "nama_item": item_nama,
+                "kode_rek": det["kode"], "nama_rek": det.get("nama", ""),
+                "c11n": c11n, "tersimpan_v2": int(round(server_total)),
+                "deviasi": dev, "note": note,
+            })
 
     for item_kode, item_data in items_data.items():
         norm_item = normalize_code(item_kode)
@@ -410,7 +426,9 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
             rek_kode = det["kode"]
             c11n     = det["c11n"]
 
-            if c11n <= 0:
+            # Export baru bawa `total` (SPJ YTD) → target dihitung YTD setelah fetch_form,
+            # jadi rekening tanpa belanja bulan ini tetap dicek (drift/tunggakan bulan lalu).
+            if det.get("total", c11n) <= 0:
                 results.append(_log_row(item_kode, rek_kode, c11n, 0, 0.0, "skip", "c11n=0"))
                 skip += 1
                 continue
@@ -431,22 +449,32 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
                 continue
 
             form = fetch_form(opener, aid, tahun, bulan_num)
+            if "total" in det:
+                # Target TOTAL-BASED YTD: Σ pekan bulan ini = SPJ s.d. kini − realPagKum server.
+                # c11n bulanan mengasumsikan Kol.10 SPJ = realPagKum; kalau server drift, c11n
+                # membatalkan koreksi manual tiap minggu (kasus 18 & 25 Sep 2026).
+                c11n = int(round(det["total"] - form["vars"]["realPagKum"]))
+
+            tersimpan = sum(form["pags"].values())
 
             open_weeks = [w for w in range(1, 6) if w not in form["locked"]]
             if not open_weeks:
                 print(f"  🔒 {rek_kode} — semua pekan bulan {bulan_nama} terkunci")
-                results.append(_log_row(item_kode, rek_kode, c11n, 0, 0.0, "blocked",
-                                        "semua pekan terkunci — minta admin Biro buka lock"))
+                note = "semua pekan terkunci — minta admin Biro buka lock"
+                results.append(_log_row(item_kode, rek_kode, c11n, 0, 0.0, "blocked", note))
+                catat_deviasi(item_kode, item_data["nama"], det, c11n, tersimpan, note)
                 blocked += 1
                 continue
             minggu = minggu_override or open_weeks[0]
             if minggu in form["locked"]:
-                results.append(_log_row(item_kode, rek_kode, c11n, 0, 0.0, "blocked",
-                                        f"pekan ke-{minggu} terkunci (terbuka: {open_weeks})"))
+                note = f"pekan ke-{minggu} terkunci (terbuka: {open_weeks})"
+                results.append(_log_row(item_kode, rek_kode, c11n, 0, 0.0, "blocked", note))
+                catat_deviasi(item_kode, item_data["nama"], det, c11n, tersimpan, note)
                 blocked += 1
                 continue
 
             plan = plan_week_value(form, c11n, minggu)
+            pag_other = sum(p for w, p in form["pags"].items() if w != minggu)
 
             if plan["status"] == "sync":
                 results.append(_log_row(item_kode, rek_kode, c11n, plan["pag"], plan["vol"],
@@ -457,6 +485,7 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
                 print(f"  🚫 {rek_kode} — {plan['note']}")
                 results.append(_log_row(item_kode, rek_kode, c11n, plan["pag"], plan["vol"],
                                         "blocked", plan["note"]))
+                catat_deviasi(item_kode, item_data["nama"], det, c11n, tersimpan, plan["note"])
                 blocked += 1
                 continue
 
@@ -467,6 +496,8 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
             if dry_run:
                 results.append(_log_row(item_kode, rek_kode, c11n, plan["pag"], plan["vol"],
                                         "dry-run", f"pekan {minggu}; tidak dikirim"))
+                catat_deviasi(item_kode, item_data["nama"], det, c11n,
+                              pag_other + plan["pag"], plan["note"] or "clamp ke sisa cap")
                 ok += 1
                 continue
 
@@ -474,6 +505,8 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
                                             plan["pag"], plan["vol"], aid, tahun, bulan_num)
             if sukses:
                 results.append(_log_row(item_kode, rek_kode, c11n, plan["pag"], plan["vol"], "ok", msg))
+                catat_deviasi(item_kode, item_data["nama"], det, c11n,
+                              pag_other + plan["pag"], plan["note"] or "clamp ke sisa cap")
                 ok += 1
             else:
                 print(f"    ❌ Gagal: {msg}")
@@ -492,6 +525,23 @@ def run_batch(export_json_path: str, dry_run: bool, auto_confirm: bool,
             writer.writeheader()
             writer.writerows(results)
     print(f"  📄 Log: {log_path}")
+
+    dev_path = Path(__file__).parent / "_deviasi.json"
+    if deviasi_rows:
+        total_dev = sum(r["deviasi"] for r in deviasi_rows)
+        dev_path.write_text(json.dumps({
+            "new_date": new_date, "bulan_num": bulan_num, "bulan_nama": bulan_nama,
+            "tahun": tahun, "minggu": minggu_override, "dry_run": dry_run,
+            "generated": datetime.now().isoformat(timespec="seconds"),
+            "total_rek": total_rek, "rek_dengan_realisasi": rek_dengan_realisasi,
+            "total_deviasi": total_dev, "rows": deviasi_rows,
+        }, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"  ⚠️  Deviasi BARU minggu ini: {len(deviasi_rows)} rekening, "
+              f"Rp {total_dev:,} — detail: {dev_path}")
+        print("     Total tertahan kumulatif ada di _audit_ytd.json, bukan angka di atas.")
+        print("     Buat laporan: ./run_audit_ytd.sh && python3 generate_laporan_deviasi.py")
+    elif dev_path.exists():
+        dev_path.unlink()   # jangan tinggalkan deviasi minggu lalu jadi laporan basi
 
     return 1 if (err > 0 or blocked > 0) else 0
 
